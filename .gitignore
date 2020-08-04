@@ -1,0 +1,6 @@
+*.db
+*.log
+budget
+budget.toml
+budget_linux_amd64
+budget_openbsd_amd64
