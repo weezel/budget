@@ -143,6 +143,9 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 				outMsg := tgbotapi.NewMessage(channelId, msg)
 				bot.Send(outMsg)
 			}
+		case "help", "apua":
+			displayHelp(username, channelId, bot)
+			continue
 		default:
 			continue
 		}
