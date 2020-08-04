@@ -3,9 +3,11 @@ package telegramhandler
 import (
 	"fmt"
 	"log"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 	"weezel/budget/dbengine"
 	"weezel/budget/utils"
 
@@ -13,6 +15,16 @@ import (
 )
 
 var splitPath = regexp.MustCompile(`\s+`)
+
+func displayHelp(username string, channelId int64, bot *tgbotapi.BotAPI) {
+	log.Printf("Help requested by %s", username)
+	helpMsg := "Tunnistan seuraavat komennot:\n"
+	helpMsg += "osto paikka [vapaaehtoinen pvm muodossa kk-vvvv] xx.xx\n"
+	helpMsg += "palkka kk-vvvv xxxx.xx (nettona)\n"
+	helpMsg += "velat, velkaa kk-vvvv\n"
+	outMsg := tgbotapi.NewMessage(channelId, helpMsg)
+	bot.Send(outMsg)
+}
 
 func ConnectionHandler(apikey string, channelId int64, debug bool) {
 	bot, err := tgbotapi.NewBotAPI(apikey)
@@ -47,20 +59,15 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 		log.Printf("Tokenized: %v", tokenized)
 		command = tokenized[0]
 
-		if len(tokenized) < 3 {
-			log.Printf("Help requested by %s", username)
-			helpMsg := "Tunnistan seuraavat komennot:\n"
-			helpMsg += "osto\n"
-			helpMsg += "palkka\n"
-			helpMsg += "velat, velkaa\n"
-			outMsg := tgbotapi.NewMessage(channelId, helpMsg)
-			bot.Send(outMsg)
-			continue
-		}
-
 		switch command {
 		case "osto":
+			if len(tokenized) < 3 {
+				displayHelp(username, channelId, bot)
+				continue
+			}
+
 			shopName = tokenized[1]
+			category := utils.GetCategory(tokenized)
 			purchaseDate := utils.GetDate(tokenized, "01-2006")
 			price, err = strconv.ParseFloat(lastElem, 64)
 			if err != nil {
@@ -71,10 +78,11 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 				continue
 			}
 
-			dbengine.InsertShopping(username, shopName, purchaseDate, price)
+			dbengine.InsertShopping(username, shopName, category, purchaseDate, price)
 
-			log.Printf("Purchased from %s with price %.2f by %s on %s",
+			log.Printf("Purchased from %s [%s] with price %.2f by %s on %s",
 				shopName,
+				category,
 				price,
 				username,
 				purchaseDate.Format("01-2006"))
@@ -83,6 +91,11 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 			bot.Send(outMsg)
 			continue
 		case "palkka":
+			if len(tokenized) < 3 {
+				displayHelp(username, channelId, bot)
+				continue
+			}
+
 			salaryDate := utils.GetDate(tokenized, "01-2006")
 			salary, err := strconv.ParseFloat(lastElem, 64)
 			if err != nil {
@@ -102,11 +115,34 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 			thxMsg := fmt.Sprintf("Palkka kirjattu, %s. Kiitos!", username)
 			outMsg := tgbotapi.NewMessage(channelId, thxMsg)
 			bot.Send(outMsg)
-		case "velat":
-		case "velkaa":
-			thxMsg := fmt.Sprint("Velkaa ollaan seuraavasti:")
-			outMsg := tgbotapi.NewMessage(channelId, thxMsg)
-			bot.Send(outMsg)
+		case "velat", "velkaa":
+			forMonth := utils.GetDate(tokenized, "01-2006")
+			if reflect.DeepEqual(forMonth, time.Time{}) {
+				log.Printf("ERROR: couldn't parse date for debts: %v", err)
+				helpMsg := "Virhe päivämäärän parsinnassa. Oltava muotoa kk-vvvv"
+				outMsg := tgbotapi.NewMessage(channelId, helpMsg)
+				bot.Send(outMsg)
+				continue
+			}
+
+			debts, err := dbengine.GetSalaryCompensatedDebts(forMonth)
+			if err != nil {
+				log.Print(err)
+				helpMsg := "Voi ei, ei saatu velkatietoja."
+				outMsg := tgbotapi.NewMessage(channelId, helpMsg)
+				bot.Send(outMsg)
+				continue
+			}
+
+			for _, user := range debts {
+				msg := fmt.Sprintf("%s: %s on velkaa %.2f",
+					forMonth.Format("01-2006"),
+					user.Username,
+					user.Owes,
+				)
+				outMsg := tgbotapi.NewMessage(channelId, msg)
+				bot.Send(outMsg)
+			}
 		default:
 			continue
 		}

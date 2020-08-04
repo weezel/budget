@@ -63,7 +63,7 @@ func logToFile(logDir string) *os.File {
 	if err != nil {
 		log.Fatalf("Error opening file %v\n", err)
 	}
-	// log.SetOutput(f)
+	log.SetOutput(f)
 	return f
 }
 
@@ -85,7 +85,9 @@ func main() {
 	}
 	conf := confighandler.LoadConfig(configFile)
 
-	db := connectAndInitDb("budget.db")
+	// protector.Protect(filepath.Join(cwd, "/"))
+
+	db := connectAndInitDb(filepath.Join(cwd, "budget.db"))
 	dbengine.UpdateDBReference(db)
 	db = nil // GC variable
 
