@@ -57,7 +57,7 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 			tokenized[len(tokenized)-1],
 			",", ".", -1)
 		log.Printf("Tokenized: %v", tokenized)
-		command = tokenized[0]
+		command = strings.ToLower(tokenized[0])
 
 		switch command {
 		case "osto":
