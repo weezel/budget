@@ -12,67 +12,6 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-/* Yes I know, it's lousy DB design.
-Nevertheless, should handle million
-rows just fine so we're good.
-
-Why didn't I make it better in the first
-hand? Takes time (i.e insertion becomes trickier)
-and I wanted to hack it up quickly.
-*/
-const dbCreationSchema string = `
-CREATE TABLE budget(
-	id INTEGER PRIMARY KEY,
-	username TEXT NOT NULL,
-	shopname TEXT NOT NULL,
-	category TEXT NOT NULL,
-	purchasedate TEXT NOT NULL,
-	price REAL NOT NULL
-);
-
-CREATE TABLE salary(
-	id INTEGER PRIMARY KEY,
-	username TEXT NOT NULL,
-	salary REAL NOT NULL,
-	recordtime TEXT NOT NULL
-);`
-
-const insertShoppingQuery string = `
-INSERT INTO budget(
-	username,
-	shopname,
-	category,
-	purchasedate,
-	price
-) VALUES (
-	:username,
-	:shopname,
-	:category,
-	:purchasedate,
-	:price
-);`
-
-const insertSalaryQuery string = `
-INSERT INTO salary(
-	username,
-	salary,
-	recordtime
-) VALUES (
-	:username,
-	:salary,
-	:recordtime
-);`
-
-const purchasesQuery string = `
-SELECT username, purchasedate, SUM(price) FROM budget
-	GROUP BY purchasedate, username
-	HAVING purchasedate = ?;
-`
-
-const salaryQuery string = `
-SELECT salary FROM salary WHERE username = ? AND recordtime = ?;
-`
-
 var (
 	dbConn *sql.DB
 )
@@ -95,7 +34,7 @@ func (d *DebtData) PrettyPrint() string {
 }
 
 func CreateSchema(db *sql.DB) {
-	_, err := db.Exec(dbCreationSchema)
+	_, err := db.Exec(DbCreationSchema)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -109,7 +48,7 @@ func UpdateDBReference(db *sql.DB) {
 }
 
 func InsertSalary(username string, salary float64, recordTime time.Time) bool {
-	stmt, err := dbConn.Prepare(insertSalaryQuery)
+	stmt, err := dbConn.Prepare(InsertSalaryQuery)
 	if err != nil {
 		log.Printf("ERROR: preparing salary insert statement failed: %v", err)
 		return false
@@ -130,7 +69,7 @@ func InsertSalary(username string, salary float64, recordTime time.Time) bool {
 }
 
 func InsertShopping(username, shopName, category string, purchaseDate time.Time, price float64) bool {
-	stmt, err := dbConn.Prepare(insertShoppingQuery)
+	stmt, err := dbConn.Prepare(InsertShoppingQuery)
 	if err != nil {
 		log.Printf("ERROR: preparing shopping insert statement failed: %v", err)
 		return false
@@ -160,7 +99,7 @@ func GetSalaryCompensatedDebts(month time.Time) ([]DebtData, error) {
 			GROUP BY purchasedate, username
 			HAVING purchasedate = ?;
 	*/
-	stmt, err := dbConn.Prepare(purchasesQuery)
+	stmt, err := dbConn.Prepare(PurchasesQuery)
 	if err != nil {
 		errMsg := fmt.Sprintf("ERROR: Failed to prepare purchase query: %v", err)
 		return []DebtData{}, errors.New(errMsg)
@@ -223,7 +162,7 @@ func GetSalaryCompensatedDebts(month time.Time) ([]DebtData, error) {
 }
 
 func getSalaryDataByUser(username string, month time.Time) (float64, error) {
-	stmt, err := dbConn.Prepare(salaryQuery)
+	stmt, err := dbConn.Prepare(SalaryQuery)
 	if err != nil {
 		errMsg := fmt.Sprintf(
 			"ERROR: Failed to prepare salary query: %v",
