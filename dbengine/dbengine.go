@@ -8,6 +8,7 @@ import (
 	"math"
 	"sort"
 	"time"
+	"weezel/budget/external"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -159,6 +160,45 @@ func GetSalaryCompensatedDebts(month time.Time) ([]DebtData, error) {
 	log.Printf("Debts fetched: %+v", debts)
 
 	return debts, nil
+}
+
+func GetMonthlySpending() ([]external.SpendingHistory, error) {
+	spending := make([]external.SpendingHistory, 0)
+
+	stmt, err := dbConn.Prepare(SpendingQuery)
+	if err != nil {
+		errMsg := fmt.Sprintf(
+			"ERROR: Failed to prepare spending query: %v",
+			err)
+		return []external.SpendingHistory{}, errors.New(errMsg)
+	}
+	defer stmt.Close()
+
+	res, err := stmt.Query("%" + time.Now().Format("2006"))
+	if err != nil {
+		errMsg := fmt.Sprintf(
+			"ERROR: Couldn't get history of spending: %v",
+			err)
+		return []external.SpendingHistory{}, errors.New(errMsg)
+	}
+	defer res.Close()
+
+	for res.Next() {
+		s := external.SpendingHistory{}
+		var tmpDate string
+
+		res.Scan(&s.Username, &tmpDate, &s.Spending)
+
+		parsedDate, err := time.Parse("01-2006", tmpDate)
+		if err != nil {
+			log.Printf("ERROR: Couldn't parse month-year for spending: %v", err)
+			continue
+		}
+		s.MonthYear = parsedDate
+
+		spending = append(spending, s)
+	}
+	return spending, nil
 }
 
 func getSalaryDataByUser(username string, month time.Time) (float64, error) {

@@ -60,3 +60,10 @@ SELECT username, purchasedate, SUM(price) FROM budget
 const SalaryQuery string = `
 SELECT salary FROM salary WHERE username = ? AND recordtime = ?;
 `
+
+const SpendingQuery string = `
+SELECT username, purchasedate, SUM(price) FROM budget
+	GROUP BY purchasedate, username
+	HAVING purchasedate LIKE ?
+	ORDER BY purchasedate, username;
+`
