@@ -14,5 +14,5 @@ func GetDate(tokens []string, format string) time.Time {
 	}
 
 	now := time.Now().UTC()
-	return time.Date(now.Year(), now.Month(), 0, 0, 0, 0, 0, time.UTC)
+	return time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, time.UTC)
 }
