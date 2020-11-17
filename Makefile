@@ -1,5 +1,6 @@
 # CGO_ENABLED=0 == static by default
 GO		 = go
+DOCKER		 = docker
 # -s removes symbol table and -ldflags -w debugging symbols
 LDFLAGS		 = -trimpath -ldflags "-s -w"
 GOARCH		 = amd64
@@ -11,6 +12,8 @@ BINARY		 = budget
 default:
 	GOOS=linux GOARCH=$(GOARCH) CGO_ENABLED=1 \
 	     $(GO) build $(LDFLAGS) -o $(BINARY)_linux_$(GOARCH)
+docker-build:
+	$(DOCKER) build --rm --target app -t budget-test .
 debug:
 	CGO_ENABLED=1 $(GO) build $(LDFLAGS)
 obsd:

@@ -1,0 +1,8 @@
+*.db
+*.log
+*.old
+.dockerignore
+.git
+.gitignore
+.vscode
+budget.toml
