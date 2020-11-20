@@ -4,8 +4,7 @@ COPY . .
 RUN go get -d -v ./...
 #RUN go install -v ./...
 RUN apt-get update \
-	&& apt-get install -y libsqlite3 \
-	&& rm -rf /var/cache/apt/archives \\
+	&& apt-get clean \\
 	&& rm -rf /var/lib/apt/lists/*
 RUN make
 
