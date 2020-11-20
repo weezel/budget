@@ -7,8 +7,9 @@ import (
 )
 
 type TeleConfig struct {
-	ChannelId int64
-	ApiKey    string
+	ChannelId  int64
+	ApiKey     string
+	WorkingDir string
 }
 
 type TomlConfig struct {

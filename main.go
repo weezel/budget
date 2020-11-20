@@ -73,17 +73,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	var cwd string = setWorkingDirectory(os.Args[1])
-
-	// This will initialize loggingFileHandle variable
-	loggingFileHandle = logToFile(cwd)
-	defer loggingFileHandle.Close()
-
 	configFile, err := ioutil.ReadFile(os.Args[1])
 	if err != nil {
 		log.Panic(err)
 	}
 	conf := confighandler.LoadConfig(configFile)
+
+	var cwd string = setWorkingDirectory(conf.TeleConfig.WorkingDir)
+
+	// This will initialize loggingFileHandle variable
+	loggingFileHandle = logToFile(cwd)
+	defer loggingFileHandle.Close()
 
 	// protector.Protect(filepath.Join(cwd, "/"))
 
