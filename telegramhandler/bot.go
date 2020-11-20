@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 	"weezel/budget/dbengine"
-	"weezel/budget/plotters"
 	"weezel/budget/utils"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -64,34 +63,34 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 		switch command {
 		case "kulutus":
 			log.Printf("Spending report requested by %s", username)
-			spendingData, err := dbengine.GetMonthlySpending()
-			if err != nil {
-				log.Print(err)
-				continue
-			}
-			spendingImg, err := plotters.LineHistogramOfAnnualSpending(spendingData)
-			if err != nil {
-				log.Print(err)
-				continue
-			}
-			imgSum := utils.CalcSha256Sum(spendingImg)
-			if imgSum == "" {
-				log.Print("ERROR: plotting image checksum was zero")
-				continue
-			}
-			photoUpload := tgbotapi.NewPhotoUpload(
-				channelId,
-				tgbotapi.FileBytes{
-					Name:  imgSum + ".png",
-					Bytes: spendingImg,
-				},
-			)
-			_, err = bot.Send(photoUpload)
-			if err != nil {
-				log.Printf("ERROR: upload spending img failed: %v", err)
-			}
+			// spendingData, err := dbengine.GetMonthlySpending()
+			// if err != nil {
+			// 	log.Print(err)
+			// 	continue
+			// }
+			// spendingImg, err := plotters.LineHistogramOfAnnualSpending(spendingData)
+			// if err != nil {
+			// 	log.Print(err)
+			// 	continue
+			// }
+			// imgSum := utils.CalcSha256Sum(spendingImg)
+			// if imgSum == "" {
+			// 	log.Print("ERROR: plotting image checksum was zero")
+			// 	continue
+			// }
+			// photoUpload := tgbotapi.NewPhotoUpload(
+			// 	channelId,
+			// 	tgbotapi.FileBytes{
+			// 		Name:  imgSum + ".png",
+			// 		Bytes: spendingImg,
+			// 	},
+			// )
+			// _, err = bot.Send(photoUpload)
+			// if err != nil {
+			// 	log.Printf("ERROR: upload spending img failed: %v", err)
+			// }
 
-			log.Print("Spending report generated")
+			// log.Print("Spending report generated")
 			continue
 		case "osto":
 			if len(tokenized) < 3 {
