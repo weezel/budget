@@ -3,6 +3,10 @@ WORKDIR /go/src/app
 COPY . .
 RUN go get -d -v ./...
 #RUN go install -v ./...
+RUN apt-get update \
+	&& apt-get install -y libsqlite3 \
+	&& rm -rf /var/cache/apt/archives \\
+	&& rm -rf /var/lib/apt/lists/*
 RUN make
 
 FROM golang:1.15 as app
