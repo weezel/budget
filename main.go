@@ -56,10 +56,11 @@ func logToFile(logDir string) *os.File {
 	loggingFileAbsPath := path.Join(logDir, logFileName)
 	log.Printf("Logging to file %s\n", loggingFileAbsPath)
 	log.SetFlags(log.Ldate | log.Ltime)
+	/* #nosec */
 	f, err := os.OpenFile(
 		loggingFileAbsPath,
 		os.O_APPEND|os.O_CREATE|os.O_RDWR,
-		0660)
+		0600)
 	if err != nil {
 		log.Fatalf("Error opening file %v\n", err)
 	}
@@ -83,7 +84,11 @@ func main() {
 
 	// This will initialize loggingFileHandle variable
 	loggingFileHandle = logToFile(cwd)
-	defer loggingFileHandle.Close()
+	defer func() {
+		if err := loggingFileHandle.Close(); err != nil {
+			log.Printf("ERROR: couldn't close file: %s", err)
+		}
+	}()
 
 	// protector.Protect(filepath.Join(cwd, "/"))
 

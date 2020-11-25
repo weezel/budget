@@ -24,7 +24,18 @@ func displayHelp(username string, channelId int64, bot *tgbotapi.BotAPI) {
 	helpMsg += "palkka kk-vvvv xxxx.xx (nettona)\r\n"
 	helpMsg += "velat, velkaa kk-vvvv\n\n"
 	outMsg := tgbotapi.NewMessage(channelId, helpMsg)
-	bot.Send(outMsg)
+	if _, err := bot.Send(outMsg); err != nil {
+		log.Printf("ERROR: sending to channel failed: %s", err)
+	}
+}
+
+// SendTelegram returns true if message sending succeeds and false otherwise
+func SendTelegram(bot *tgbotapi.BotAPI, msg tgbotapi.MessageConfig, sectionName string) bool {
+	if _, err := bot.Send(msg); err != nil {
+		log.Printf("ERROR: %s: sending to channel failed %s", sectionName, err)
+		return false
+	}
+	return true
 }
 
 func ConnectionHandler(apikey string, channelId int64, debug bool) {
@@ -106,7 +117,9 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 				log.Printf("ERROR: price wasn't the last item: %v", tokenized)
 				helpMsg := "Virhe, hinta täytyy olla komennon viimeinen elementti"
 				outMsg := tgbotapi.NewMessage(channelId, helpMsg)
-				bot.Send(outMsg)
+				if SendTelegram(bot, outMsg, "osto1") == false {
+					continue
+				}
 				continue
 			}
 
@@ -120,7 +133,9 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 				purchaseDate.Format("01-2006"))
 			thxMsg := fmt.Sprintf("Ostosi on kirjattu, %s. Kiitos!", username)
 			outMsg := tgbotapi.NewMessage(channelId, thxMsg)
-			bot.Send(outMsg)
+			if SendTelegram(bot, outMsg, "osto2") == false {
+				continue
+			}
 			continue
 		case "palkka":
 			if len(tokenized) < 3 {
@@ -134,7 +149,9 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 				log.Printf("ERROR: couldn't parse salary: %v", err)
 				helpMsg := "Virhe palkan parsinnassa. Palkan oltava viimeisenä ja muodossa x.xx tai x,xx"
 				outMsg := tgbotapi.NewMessage(channelId, helpMsg)
-				bot.Send(outMsg)
+				if SendTelegram(bot, outMsg, "palkka1") == false {
+					continue
+				}
 				continue
 			}
 
@@ -146,14 +163,18 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 				salaryDate.Format("01-2006"))
 			thxMsg := fmt.Sprintf("Palkka kirjattu, %s. Kiitos!", username)
 			outMsg := tgbotapi.NewMessage(channelId, thxMsg)
-			bot.Send(outMsg)
+			if SendTelegram(bot, outMsg, "palkka2") == false {
+				continue
+			}
 		case "velat", "velkaa":
 			forMonth := utils.GetDate(tokenized, "01-2006")
 			if reflect.DeepEqual(forMonth, time.Time{}) {
 				log.Printf("ERROR: couldn't parse date for debts: %v", err)
 				helpMsg := "Virhe päivämäärän parsinnassa. Oltava muotoa kk-vvvv"
 				outMsg := tgbotapi.NewMessage(channelId, helpMsg)
-				bot.Send(outMsg)
+				if SendTelegram(bot, outMsg, "velat1") == false {
+					continue
+				}
 				continue
 			}
 
@@ -162,7 +183,9 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 				log.Print(err)
 				helpMsg := "Voi ei, ei saatu velkatietoja."
 				outMsg := tgbotapi.NewMessage(channelId, helpMsg)
-				bot.Send(outMsg)
+				if SendTelegram(bot, outMsg, "velat2") == false {
+					continue
+				}
 				continue
 			}
 
@@ -173,7 +196,9 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 					user.Owes,
 				)
 				outMsg := tgbotapi.NewMessage(channelId, msg)
-				bot.Send(outMsg)
+				if SendTelegram(bot, outMsg, "velat3") == false {
+					continue
+				}
 			}
 		case "help", "apua":
 			displayHelp(username, channelId, bot)

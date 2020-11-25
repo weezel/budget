@@ -187,7 +187,10 @@ func GetMonthlySpending() ([]external.SpendingHistory, error) {
 		s := external.SpendingHistory{}
 		var tmpDate string
 
-		res.Scan(&s.Username, &tmpDate, &s.Spending)
+		if err := res.Scan(&s.Username, &tmpDate, &s.Spending); err != nil {
+			log.Printf("ERROR: couldn't parse speding: %s", err)
+			continue
+		}
 
 		parsedDate, err := time.Parse("01-2006", tmpDate)
 		if err != nil {
