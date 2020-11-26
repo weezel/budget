@@ -61,6 +61,13 @@ const SalaryQuery string = `
 SELECT salary FROM salary WHERE username = ? AND recordtime = ?;
 `
 
+const SalariesQuery string = `
+SELECT username, salary, recordtime FROM salary
+	WHERE recordtime = ?
+	GROUP BY username, recordtime
+	ORDER BY recordtime;
+`
+
 const SpendingQuery string = `
 SELECT username, purchasedate, SUM(price) FROM budget
 	GROUP BY purchasedate, username

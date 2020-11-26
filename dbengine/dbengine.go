@@ -238,3 +238,43 @@ func getSalaryDataByUser(username string, month time.Time) (float64, error) {
 
 	return salary, nil
 }
+
+func GetSalariesByMonth(month time.Time) ([]DebtData, error) {
+	stmt, err := dbConn.Prepare(SalariesQuery)
+	if err != nil {
+		errMsg := fmt.Sprintf(
+			"ERROR: Failed to prepare salary query: %v",
+			err)
+		return []DebtData{}, errors.New(errMsg)
+	}
+	defer stmt.Close()
+
+	res, err := stmt.Query(month.Format("01-2006"))
+	if err != nil {
+		errMsg := fmt.Sprintf(
+			"ERROR: Couldn't get list of salaries: %v",
+			err)
+		return []DebtData{}, errors.New(errMsg)
+	}
+	defer res.Close()
+
+	var salaries []DebtData = make([]DebtData, 0)
+	for res.Next() {
+		var salary DebtData
+		err = res.Scan(&salary.Username, &salary.Salary, &salary.Date)
+		if err != nil {
+			errMsg := fmt.Sprintf("ERROR: Couldn't assign salary data: %v", err)
+			return []DebtData{}, errors.New(errMsg)
+		}
+		if salary.Salary > 0 {
+			salary.Salary = 1.0
+		}
+		salaries = append(salaries, salary)
+
+	}
+	log.Printf("Salaries on %s are %+v",
+		month.UTC().Format("01-2006"),
+		salaries)
+
+	return salaries, nil
+}

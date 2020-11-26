@@ -232,18 +232,66 @@ INSERT INTO budget (username, shopname, category, purchasedate, price) VALUES
 		{
 			"Get annual spending",
 			[]external.SpendingHistory{
-				{"alice", time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC), 14.0},
-				{"tom", time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC), 10.0},
-				{"alice", time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC), 9.0},
-				{"tom", time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC), 15.4},
-				{"alice", time.Date(2020, 3, 1, 0, 0, 0, 0, time.UTC), 33.46},
-				{"tom", time.Date(2020, 3, 1, 0, 0, 0, 0, time.UTC), 4.4},
-				{"alice", time.Date(2020, 4, 1, 0, 0, 0, 0, time.UTC), 323.2},
-				{"tom", time.Date(2020, 4, 1, 0, 0, 0, 0, time.UTC), 559.9},
-				{"tom", time.Date(2020, 6, 1, 0, 0, 0, 0, time.UTC), 8.0},
-				{"alice", time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC), 7.0},
-				{"tom", time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC), 16.0},
-				{"alice", time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC), 160.0},
+				{
+					Username:  "alice",
+					MonthYear: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+					Spending:  14.0,
+				},
+				{
+					Username:  "tom",
+					MonthYear: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+					Spending:  10.0,
+				},
+				{
+					Username:  "alice",
+					MonthYear: time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
+					Spending:  9.0,
+				},
+				{
+					Username:  "tom",
+					MonthYear: time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
+					Spending:  15.4,
+				},
+				{
+					Username:  "alice",
+					MonthYear: time.Date(2020, 3, 1, 0, 0, 0, 0, time.UTC),
+					Spending:  33.46,
+				},
+				{
+					Username:  "tom",
+					MonthYear: time.Date(2020, 3, 1, 0, 0, 0, 0, time.UTC),
+					Spending:  4.4,
+				},
+				{
+					Username:  "alice",
+					MonthYear: time.Date(2020, 4, 1, 0, 0, 0, 0, time.UTC),
+					Spending:  323.2,
+				},
+				{
+					Username:  "tom",
+					MonthYear: time.Date(2020, 4, 1, 0, 0, 0, 0, time.UTC),
+					Spending:  559.9,
+				},
+				{
+					Username:  "tom",
+					MonthYear: time.Date(2020, 6, 1, 0, 0, 0, 0, time.UTC),
+					Spending:  8.0,
+				},
+				{
+					Username:  "alice",
+					MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
+					Spending:  7.0,
+				},
+				{
+					Username:  "tom",
+					MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
+					Spending:  16.0,
+				},
+				{
+					Username:  "alice",
+					MonthYear: time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC),
+					Spending:  160.0,
+				},
 			},
 			false,
 		},
@@ -270,6 +318,105 @@ INSERT INTO budget (username, shopname, category, purchasedate, price) VALUES
 			// 	t.Errorf("AIJAI: %s", err)
 			// }
 			// ioutil.WriteFile("testikuva.png", b, 0600)
+		})
+	}
+}
+
+func TestGetSalariesByMonth(t *testing.T) {
+	memDb, _ := sql.Open("sqlite3", ":memory:")
+	defer memDb.Close()
+
+	UpdateDBReference(memDb)
+	CreateSchema(memDb)
+
+	_, err := memDb.Exec(`
+INSERT INTO salary (username, salary, recordtime) VALUES
+	('alice',  128.0,  '06-2020'),
+	('alice',  512.0,  '07-2020'),
+	('tom',    256.0,  '07-2020'),
+	('alice',  0.0,    '08-2020'),
+	('tom',    3840.0, '08-2020');`)
+	if err != nil {
+		t.Fatalf("Unexpected error in SQL INSERT: %v", err)
+	}
+	type args struct {
+		month time.Time
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    []DebtData
+		wantErr bool
+	}{
+		{
+			"Get salaries on January",
+			args{time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)},
+			[]DebtData{},
+			false,
+		},
+		{
+			"Get salaries on June",
+			args{time.Date(2020, 6, 1, 0, 0, 0, 0, time.UTC)},
+			[]DebtData{
+				{
+					Username: "alice",
+					Salary:   1.0,
+					Date:     "06-2020",
+				},
+			},
+			false,
+		},
+		{
+			"Get salaries on July",
+			args{time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC)},
+			[]DebtData{
+				{
+					Username: "alice",
+					Salary:   1.0,
+					Date:     "07-2020",
+				},
+				{
+					Username: "tom",
+					Salary:   1.0,
+					Date:     "07-2020",
+				},
+			},
+			false,
+		},
+		{
+			"Get salaries on August",
+			args{time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC)},
+			[]DebtData{
+				{
+					Username: "alice",
+					Salary:   0.0,
+					Date:     "08-2020",
+				},
+				{
+					Username: "tom",
+					Salary:   1.0,
+					Date:     "08-2020",
+				},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := GetSalariesByMonth(tt.args.month)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("%s: GetSalariesByMonth() error = %v, wantErr %v",
+					tt.name,
+					err,
+					tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("%s: GetSalariesByMonth() = %v, want %v",
+					tt.name,
+					got,
+					tt.want)
+			}
 		})
 	}
 }

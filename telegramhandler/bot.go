@@ -166,6 +166,40 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 			if SendTelegram(bot, outMsg, "palkka2") == false {
 				continue
 			}
+		case "palkat":
+			forMonth := utils.GetDate(tokenized, "01-2006")
+			if reflect.DeepEqual(forMonth, time.Time{}) {
+				log.Printf("ERROR: couldn't parse date for salaries: %v", err)
+				helpMsg := "Virhe päivämäärän parsinnassa. Oltava muotoa kk-vvvv"
+				outMsg := tgbotapi.NewMessage(channelId, helpMsg)
+				if SendTelegram(bot, outMsg, "palkat1") == false {
+					continue
+				}
+				continue
+			}
+
+			salaries, err := dbengine.GetSalariesByMonth(forMonth)
+			if err != nil {
+				log.Print(err)
+				helpMsg := "Voi ei, ei saatu palkkatietoja."
+				outMsg := tgbotapi.NewMessage(channelId, helpMsg)
+				if SendTelegram(bot, outMsg, "palkat2") == false {
+					continue
+				}
+				continue
+			}
+
+			for _, user := range salaries {
+				msg := fmt.Sprintf("%s  %s  %.2f",
+					user.Username,
+					user.Date,
+					user.Salary,
+				)
+				outMsg := tgbotapi.NewMessage(channelId, msg)
+				if SendTelegram(bot, outMsg, "palkat3") == false {
+					continue
+				}
+			}
 		case "velat", "velkaa":
 			forMonth := utils.GetDate(tokenized, "01-2006")
 			if reflect.DeepEqual(forMonth, time.Time{}) {
