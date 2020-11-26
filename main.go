@@ -42,7 +42,7 @@ func setWorkingDirectory(workdirPath string) string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	cdwPath := path.Dir(absPath)
+	cdwPath := path.Dir(absPath + "/")
 	if err := os.Chdir(cdwPath); err != nil {
 		log.Fatal(err)
 	}
