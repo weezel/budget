@@ -169,7 +169,7 @@ func GetSalaryCompensatedDebts(month time.Time) ([]DebtData, error) {
 func GetMonthlySpending() ([]external.SpendingHistory, error) {
 	spending := make([]external.SpendingHistory, 0)
 
-	stmt, err := dbConn.Prepare(SpendingQuery)
+	stmt, err := dbConn.Prepare(MonthlySpendingQuery)
 	if err != nil {
 		errMsg := fmt.Sprintf(
 			"ERROR: Failed to prepare spending query: %v",

@@ -68,7 +68,7 @@ SELECT username, salary, recordtime FROM salary
 	ORDER BY recordtime;
 `
 
-const SpendingQuery string = `
+const MonthlySpendingQuery string = `
 SELECT username, purchasedate, SUM(price) FROM budget
 	GROUP BY purchasedate, username
 	HAVING purchasedate LIKE ?
