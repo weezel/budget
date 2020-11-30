@@ -68,7 +68,9 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 		tokenized := splitPath.Split(msg, -1)
 		lastElem = strings.Replace(
 			tokenized[len(tokenized)-1],
-			",", ".", -1)
+			",",
+			".",
+			-1)
 		log.Printf("Tokenized: %v", tokenized)
 		command = strings.ToLower(tokenized[0])
 
