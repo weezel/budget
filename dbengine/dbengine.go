@@ -112,7 +112,11 @@ func GetSalaryCompensatedDebts(month time.Time) ([]DebtData, error) {
 		errMsg := fmt.Sprintf("ERROR: couldn't get purchase data: %v", err)
 		return []DebtData{}, errors.New(errMsg)
 	}
-	defer res.Close()
+	defer func() {
+		if err := res.Close(); err != nil {
+			log.Printf("ERROR: couldn't close file handle in GetSalaryCompensatedDebts: %s", err)
+		}
+	}()
 
 	for res.Next() {
 		d := DebtData{}
@@ -181,7 +185,11 @@ func GetMonthlySpending() ([]external.SpendingHistory, error) {
 			err)
 		return []external.SpendingHistory{}, errors.New(errMsg)
 	}
-	defer res.Close()
+	defer func() {
+		if err := res.Close(); err != nil {
+			log.Printf("ERROR: couldn't close file handle in GetMonthlySpending: %s", err)
+		}
+	}()
 
 	for res.Next() {
 		s := external.SpendingHistory{}
@@ -221,7 +229,11 @@ func getSalaryDataByUser(username string, month time.Time) (float64, error) {
 			err)
 		return math.NaN(), errors.New(errMsg)
 	}
-	defer res.Close()
+	defer func() {
+		if err := res.Close(); err != nil {
+			log.Printf("ERROR: couldn't close file handle in getSalaryDataByUser: %s", err)
+		}
+	}()
 
 	var salary float64
 	for res.Next() {
@@ -256,7 +268,11 @@ func GetSalariesByMonth(month time.Time) ([]DebtData, error) {
 			err)
 		return []DebtData{}, errors.New(errMsg)
 	}
-	defer res.Close()
+	defer func() {
+		if err := res.Close(); err != nil {
+			log.Printf("ERROR: couldn't close file handle in GetSalariesByMonth: %s", err)
+		}
+	}()
 
 	var salaries []DebtData = make([]DebtData, 0)
 	for res.Next() {
