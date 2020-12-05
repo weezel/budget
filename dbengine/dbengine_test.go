@@ -331,16 +331,19 @@ func TestGetSalariesByMonth(t *testing.T) {
 
 	_, err := memDb.Exec(`
 INSERT INTO salary (username, salary, recordtime) VALUES
+	('alice',    8.0,  '01-2020'),
+	('tom',      4.0,  '01-2020'),
 	('alice',  128.0,  '06-2020'),
 	('alice',  512.0,  '07-2020'),
 	('tom',    256.0,  '07-2020'),
-	('alice',  0.0,    '08-2020'),
+	('alice',    0.0,  '08-2020'),
 	('tom',    3840.0, '08-2020');`)
 	if err != nil {
 		t.Fatalf("Unexpected error in SQL INSERT: %v", err)
 	}
 	type args struct {
-		month time.Time
+		startMonth time.Time
+		endMonth   time.Time
 	}
 	tests := []struct {
 		name    string
@@ -349,14 +352,16 @@ INSERT INTO salary (username, salary, recordtime) VALUES
 		wantErr bool
 	}{
 		{
-			"Get salaries on January",
-			args{time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)},
+			"Get salaries on February",
+			args{time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
+				time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC)},
 			[]DebtData{},
 			false,
 		},
 		{
 			"Get salaries on June",
-			args{time.Date(2020, 6, 1, 0, 0, 0, 0, time.UTC)},
+			args{time.Date(2020, 6, 1, 0, 0, 0, 0, time.UTC),
+				time.Date(2020, 6, 1, 0, 0, 0, 0, time.UTC)},
 			[]DebtData{
 				{
 					Username: "alice",
@@ -368,7 +373,8 @@ INSERT INTO salary (username, salary, recordtime) VALUES
 		},
 		{
 			"Get salaries on July",
-			args{time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC)},
+			args{time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
+				time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC)},
 			[]DebtData{
 				{
 					Username: "alice",
@@ -385,7 +391,8 @@ INSERT INTO salary (username, salary, recordtime) VALUES
 		},
 		{
 			"Get salaries on August",
-			args{time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC)},
+			args{time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC),
+				time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC)},
 			[]DebtData{
 				{
 					Username: "alice",
@@ -400,10 +407,33 @@ INSERT INTO salary (username, salary, recordtime) VALUES
 			},
 			false,
 		},
+		{
+			"Get half year salaries from Jan to Jun",
+			args{time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+				time.Date(2020, 6, 1, 0, 0, 0, 0, time.UTC)},
+			[]DebtData{
+				{
+					Username: "alice",
+					Salary:   1.0,
+					Date:     "01-2020",
+				},
+				{
+					Username: "alice",
+					Salary:   1.0,
+					Date:     "06-2020",
+				},
+				{
+					Username: "tom",
+					Salary:   1.0,
+					Date:     "01-2020",
+				},
+			},
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetSalariesByMonth(tt.args.month)
+			got, err := GetSalariesByMonthRange(tt.args.startMonth, tt.args.endMonth)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("%s: GetSalariesByMonth() error = %v, wantErr %v",
 					tt.name,

@@ -251,7 +251,7 @@ func getSalaryDataByUser(username string, month time.Time) (float64, error) {
 	return salary, nil
 }
 
-func GetSalariesByMonth(month time.Time) ([]DebtData, error) {
+func GetSalariesByMonthRange(startMonth time.Time, endMonth time.Time) ([]DebtData, error) {
 	stmt, err := dbConn.Prepare(SalariesQuery)
 	if err != nil {
 		errMsg := fmt.Sprintf(
@@ -261,7 +261,9 @@ func GetSalariesByMonth(month time.Time) ([]DebtData, error) {
 	}
 	defer stmt.Close()
 
-	res, err := stmt.Query(month.Format("01-2006"))
+	res, err := stmt.Query(
+		startMonth.Format("01-2006"),
+		endMonth.Format("01-2006"))
 	if err != nil {
 		errMsg := fmt.Sprintf(
 			"ERROR: Couldn't get list of salaries: %v",
@@ -288,8 +290,8 @@ func GetSalariesByMonth(month time.Time) ([]DebtData, error) {
 		salaries = append(salaries, salary)
 
 	}
-	log.Printf("Salaries on %s are %+v",
-		month.UTC().Format("01-2006"),
+	log.Printf("Half year salaries starting on %s are %+v",
+		startMonth.UTC().Format("01-2006"),
 		salaries)
 
 	return salaries, nil

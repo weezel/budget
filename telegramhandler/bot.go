@@ -181,7 +181,11 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 				continue
 			}
 
-			salaries, err := dbengine.GetSalariesByMonth(forMonth)
+			halfYearAgo := forMonth.AddDate(0, -6, 0)
+			salaries, err := dbengine.GetSalariesByMonthRange(
+				halfYearAgo,
+				forMonth,
+			)
 			if err != nil {
 				log.Print(err)
 				helpMsg := "Voi ei, ei saatu palkkatietoja."

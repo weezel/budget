@@ -63,9 +63,9 @@ SELECT salary FROM salary WHERE username = ? AND recordtime = ?;
 
 const SalariesQuery string = `
 SELECT username, salary, recordtime FROM salary
-	WHERE recordtime = ?
+	WHERE recordtime BETWEEN ? AND ?
 	GROUP BY username, recordtime
-	ORDER BY recordtime;
+	ORDER BY username, recordtime;
 `
 
 const MonthlySpendingQuery string = `
@@ -73,4 +73,11 @@ SELECT username, purchasedate, SUM(price) FROM budget
 	GROUP BY purchasedate, username
 	HAVING purchasedate LIKE ?
 	ORDER BY purchasedate, username;
+`
+
+const DateRangeSpendingQuery string = `
+SELECT * FROM budget
+	WHERE purchasedate BETWEEN ? AND ?
+	GROUP BY username, shopname
+	ORDER BY purchasedate;
 `
