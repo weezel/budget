@@ -31,7 +31,14 @@ func displayHelp(username string, channelId int64, bot *tgbotapi.BotAPI) {
 }
 
 // SendTelegram returns true if message sending succeeds and false otherwise
-func SendTelegram(bot *tgbotapi.BotAPI, msg tgbotapi.MessageConfig, sectionName string) bool {
+func SendTelegram(
+	bot *tgbotapi.BotAPI,
+	msg tgbotapi.MessageConfig,
+	sectionName string,
+	markdown bool) bool {
+	if markdown {
+		msg.ParseMode = tgbotapi.ModeMarkdown
+	}
 	if _, err := bot.Send(msg); err != nil {
 		log.Printf("ERROR: %s: sending to channel failed %s", sectionName, err)
 		return false
@@ -120,7 +127,7 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 				log.Printf("ERROR: price wasn't the last item: %v", tokenized)
 				helpMsg := "Virhe, hinta täytyy olla komennon viimeinen elementti"
 				outMsg := tgbotapi.NewMessage(channelId, helpMsg)
-				if SendTelegram(bot, outMsg, "osto1") == false {
+				if SendTelegram(bot, outMsg, "osto1", false) == false {
 					continue
 				}
 				continue
@@ -136,7 +143,7 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 				purchaseDate.Format("01-2006"))
 			thxMsg := fmt.Sprintf("Ostosi on kirjattu, %s. Kiitos!", username)
 			outMsg := tgbotapi.NewMessage(channelId, thxMsg)
-			if SendTelegram(bot, outMsg, "osto2") == false {
+			if SendTelegram(bot, outMsg, "osto2", false) == false {
 				continue
 			}
 			continue
@@ -152,7 +159,7 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 				log.Printf("ERROR: couldn't parse salary: %v", err)
 				helpMsg := "Virhe palkan parsinnassa. Palkan oltava viimeisenä ja muodossa x.xx tai x,xx"
 				outMsg := tgbotapi.NewMessage(channelId, helpMsg)
-				if SendTelegram(bot, outMsg, "palkka1") == false {
+				if SendTelegram(bot, outMsg, "palkka1", false) == false {
 					continue
 				}
 				continue
@@ -166,7 +173,7 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 				salaryDate.Format("01-2006"))
 			thxMsg := fmt.Sprintf("Palkka kirjattu, %s. Kiitos!", username)
 			outMsg := tgbotapi.NewMessage(channelId, thxMsg)
-			if SendTelegram(bot, outMsg, "palkka2") == false {
+			if SendTelegram(bot, outMsg, "palkka2", false) == false {
 				continue
 			}
 		case "palkat":
@@ -175,7 +182,7 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 				log.Printf("ERROR: couldn't parse date for salaries: %v", err)
 				helpMsg := "Virhe päivämäärän parsinnassa. Oltava muotoa kk-vvvv"
 				outMsg := tgbotapi.NewMessage(channelId, helpMsg)
-				if SendTelegram(bot, outMsg, "palkat1") == false {
+				if SendTelegram(bot, outMsg, "palkat1", false) == false {
 					continue
 				}
 				continue
@@ -190,7 +197,7 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 				log.Print(err)
 				helpMsg := "Voi ei, ei saatu palkkatietoja."
 				outMsg := tgbotapi.NewMessage(channelId, helpMsg)
-				if SendTelegram(bot, outMsg, "palkat2") == false {
+				if SendTelegram(bot, outMsg, "palkat2", false) == false {
 					continue
 				}
 				continue
@@ -203,7 +210,7 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 					user.Salary,
 				)
 				outMsg := tgbotapi.NewMessage(channelId, msg)
-				if SendTelegram(bot, outMsg, "palkat3") == false {
+				if SendTelegram(bot, outMsg, "palkat3", false) == false {
 					continue
 				}
 			}
@@ -213,7 +220,7 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 				log.Printf("ERROR: couldn't parse date for debts: %v", err)
 				helpMsg := "Virhe päivämäärän parsinnassa. Oltava muotoa kk-vvvv"
 				outMsg := tgbotapi.NewMessage(channelId, helpMsg)
-				if SendTelegram(bot, outMsg, "velat1") == false {
+				if SendTelegram(bot, outMsg, "velat1", false) == false {
 					continue
 				}
 				continue
@@ -224,7 +231,7 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 				log.Print(err)
 				helpMsg := "Voi ei, ei saatu velkatietoja."
 				outMsg := tgbotapi.NewMessage(channelId, helpMsg)
-				if SendTelegram(bot, outMsg, "velat2") == false {
+				if SendTelegram(bot, outMsg, "velat2", false) == false {
 					continue
 				}
 				continue
@@ -237,7 +244,7 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 					user.Owes,
 				)
 				outMsg := tgbotapi.NewMessage(channelId, msg)
-				if SendTelegram(bot, outMsg, "velat3") == false {
+				if SendTelegram(bot, outMsg, "velat3", false) == false {
 					continue
 				}
 			}
