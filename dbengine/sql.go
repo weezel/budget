@@ -74,6 +74,13 @@ SELECT username, purchasedate, SUM(price) FROM budget
 	HAVING purchasedate LIKE ?
 	ORDER BY purchasedate, username;
 `
+const MonthlyPurchasesByUserQuery string = `
+SELECT purchasedate, shopname, price FROM budget
+	GROUP BY purchasedate, shopname, price
+	HAVING username = ?
+	AND purchasedate = ?
+	ORDER BY purchasedate, shopname, price;
+`
 
 const DateRangeSpendingQuery string = `
 SELECT * FROM budget

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 	"weezel/budget/dbengine"
+	"weezel/budget/external"
 	"weezel/budget/utils"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -133,7 +134,13 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 				continue
 			}
 
-			dbengine.InsertShopping(username, shopName, category, purchaseDate, price)
+			err = dbengine.InsertShopping(username, shopName, category, purchaseDate, price)
+			if err != nil {
+				log.Println(err)
+				outMsg := tgbotapi.NewMessage(channelId, err.Error())
+				_ = SendTelegram(bot, outMsg, "osto2", false)
+				continue
+			}
 
 			log.Printf("Purchased from %s [%s] with price %.2f by %s on %s",
 				shopName,
@@ -143,9 +150,56 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 				purchaseDate.Format("01-2006"))
 			thxMsg := fmt.Sprintf("Ostosi on kirjattu, %s. Kiitos!", username)
 			outMsg := tgbotapi.NewMessage(channelId, thxMsg)
-			if SendTelegram(bot, outMsg, "osto2", false) == false {
+			if SendTelegram(bot, outMsg, "osto3", false) == false {
 				continue
 			}
+			continue
+		case "ostot":
+			if len(tokenized) < 2 {
+				displayHelp(username, channelId, bot)
+				continue
+			}
+
+			month, err := time.Parse("01-2006", tokenized[1])
+			if err != nil {
+				helpMsg := "Virhe päivämäärän parsinnassa. Oltava muotoa kk-vvvv"
+				outMsg := tgbotapi.NewMessage(channelId, helpMsg)
+				if SendTelegram(bot, outMsg, "ostot1", false) == false {
+					continue
+				}
+			}
+
+			spending, err := dbengine.GetMonthlyPurchasesByUser(username, month)
+			if err != nil {
+				log.Println(err)
+				outMsg := tgbotapi.NewMessage(
+					channelId,
+					"Kulutuksen hakemisessa ongelmaa")
+				_ = SendTelegram(bot, outMsg, "purchByUser", false)
+				continue
+			}
+			if reflect.DeepEqual(spending, []external.SpendingHistory{}) {
+				outMsg := tgbotapi.NewMessage(
+					channelId,
+					"Ei ostoja tässä kuussa")
+				_ = SendTelegram(bot, outMsg, "noPurchasesByUser", false)
+				continue
+			}
+
+			var finalMsg []string = make([]string, len(spending))
+			for i, s := range spending {
+				cleanedEvent := strings.ReplaceAll(s.EventName, "_", " ")
+				msg := fmt.Sprintf("%s  %s  %.2f",
+					s.MonthYear.Format("01-2006"),
+					cleanedEvent,
+					s.Spending)
+				finalMsg[i] = msg
+			}
+			outMsg := tgbotapi.NewMessage(channelId, strings.Join(finalMsg, "\n"))
+			if SendTelegram(bot, outMsg, "ostot2", true) == true {
+				continue
+			}
+
 			continue
 		case "palkka":
 			if len(tokenized) < 3 {

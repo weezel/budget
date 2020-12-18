@@ -450,3 +450,89 @@ INSERT INTO salary (username, salary, recordtime) VALUES
 		})
 	}
 }
+
+func TestGetMonthlyPurchasesByUser(t *testing.T) {
+	memDb, _ := sql.Open("sqlite3", ":memory:")
+	defer memDb.Close()
+
+	UpdateDBReference(memDb)
+	CreateSchema(memDb)
+
+	_, err := memDb.Exec(`
+	INSERT INTO budget (username, shopname, category, purchasedate, price) VALUES
+	('alice', 'lidl',   '', '01-2020',  12.0),
+	('alice', 'lidl',   '', '01-2020',   2.0),
+	('tom',   'lidl',   '', '01-2020',  10.0),
+	('alice', 'lidl',   '', '02-2020',   9.0),
+	('tom',   'lidl',   '', '02-2020',  15.4),
+	('alice', 'lidl',   '', '03-2020', 17.66),
+	('alice', 'lidl',   '', '03-2020',  15.8),
+	('tom',   'lidl',   '', '03-2020',   4.4),
+	('alice', 'lidl',   '', '04-2020', 318.9),
+	('tom',   'lidl',   '', '04-2020', 559.9),
+	('alice', 'lidl',   '', '04-2020',   4.3),
+	('tom',   'ikea',   '', '06-2020',   8.0),
+	('alice', 'lidl',   '', '07-2020',   1.0),
+	('alice', 'lidl',   '', '07-2020',   2.0),
+	('alice', 'lidl',   '', '07-2020',   4.0),
+	('tom',   'ikea',   '', '07-2020',  16.0),
+	('alice', 'amazon', '', '08-2020', 128.0),
+	('alice', 'amazon', '', '08-2020',  32.0),
+	('tom',   'siwa',   '', '08-2021', 256.0),
+	('tom',   'siwa',   '', '08-2021', 512.0) ;`)
+	if err != nil {
+		t.Fatalf("Unexpected error in SQL INSERT: %v", err)
+	}
+
+	type args struct {
+		username string
+		month    time.Time
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    []external.SpendingHistory
+		wantErr bool
+	}{
+		{
+			"Ding dong",
+			args{"alice", time.Date(2020, 7, 1, 1, 0, 0, 0, time.UTC)},
+			[]external.SpendingHistory{
+				{
+					MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
+					EventName: "lidl",
+					Spending:  1.0,
+				},
+				{
+					MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
+					EventName: "lidl",
+					Spending:  2.0,
+				},
+				{
+					MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
+					EventName: "lidl",
+					Spending:  4.0,
+				},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := GetMonthlyPurchasesByUser(tt.args.username, tt.args.month)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("%s: GetMonthlyPurchasesByUser() error = %v, wantErr %v",
+					tt.name,
+					err,
+					tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("%s: GetMonthlyPurchasesByUser() = %v, want %v",
+					tt.name,
+					got,
+					tt.want)
+			}
+		})
+	}
+}
