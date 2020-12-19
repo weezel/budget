@@ -196,7 +196,7 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 				finalMsg[i] = msg
 			}
 			outMsg := tgbotapi.NewMessage(channelId, strings.Join(finalMsg, "\n"))
-			if SendTelegram(bot, outMsg, "ostot2", true) == true {
+			if SendTelegram(bot, outMsg, "ostot2", false) == false {
 				continue
 			}
 
@@ -257,16 +257,22 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 				continue
 			}
 
-			for _, user := range salaries {
-				msg := fmt.Sprintf("%s  %s  %.2f",
+			var finalMsg []string = make([]string, len(salaries))
+			for i, user := range salaries {
+				var salarySet string = "\u274C"
+				if user.Salary > 0 {
+					salarySet = "\u2714"
+				}
+				msg := fmt.Sprintf("%s  %s  %s",
 					user.Username,
 					user.Date,
-					user.Salary,
+					salarySet,
 				)
-				outMsg := tgbotapi.NewMessage(channelId, msg)
-				if SendTelegram(bot, outMsg, "palkat3", false) == false {
-					continue
-				}
+				finalMsg[i] = msg
+			}
+			outMsg := tgbotapi.NewMessage(channelId, strings.Join(finalMsg, "\n"))
+			if SendTelegram(bot, outMsg, "palkat3", false) == false {
+				continue
 			}
 		case "velat", "velkaa":
 			forMonth := utils.GetDate(tokenized, "01-2006")
