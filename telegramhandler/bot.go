@@ -22,8 +22,9 @@ func displayHelp(username string, channelId int64, bot *tgbotapi.BotAPI) {
 	helpMsg := "Tunnistan seuraavat komennot:\n\n"
 	helpMsg += "kulutus\n\n"
 	helpMsg += "osto paikka [vapaaehtoinen pvm muodossa kk-vvvv] xx.xx\n\n"
+	helpMsg += "ostot [kk-vvvv]\n\n"
 	helpMsg += "palkka kk-vvvv xxxx.xx (nettona)\r\n"
-	helpMsg += "palkat kk-vvvv xxxx.xx\r\n"
+	helpMsg += "palkat kk-vvvv\r\n"
 	helpMsg += "velat, velkaa kk-vvvv\n\n"
 	outMsg := tgbotapi.NewMessage(channelId, helpMsg)
 	if _, err := bot.Send(outMsg); err != nil {
