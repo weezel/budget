@@ -290,7 +290,7 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 			debts, err := dbengine.GetSalaryCompensatedDebts(forMonth)
 			if err != nil {
 				log.Print(err)
-				helpMsg := "Voi ei, ei saatu velkatietoja."
+				helpMsg := fmt.Sprintf("Voi ei, ei saatu velkatietoja: %s", err)
 				outMsg := tgbotapi.NewMessage(channelId, helpMsg)
 				if SendTelegram(bot, outMsg, "velat2", false) == false {
 					continue
