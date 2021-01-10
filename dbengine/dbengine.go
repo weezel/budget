@@ -138,23 +138,28 @@ func GetSalaryCompensatedDebts(month time.Time) ([]DebtData, error) {
 	}
 	// Descending order regarding the salary
 	sort.Slice(debts, func(i, j int) bool {
-		return debts[0].Salary > debts[1].Salary
+		return debts[i].Salary < debts[j].Salary
 	})
 
-	greaterExp := math.Max(debts[0].Expanses, debts[1].Expanses)
-	lesserExp := math.Min(debts[0].Expanses, debts[1].Expanses)
-	pendingDebt := greaterExp - lesserExp
-	salaryRatio := debts[0].Salary / debts[1].Salary
+	sumSalaries := float64(debts[1].Salary + debts[0].Salary)
+	lesserIncomeRatio := debts[0].Salary / sumSalaries
+	greaterIncomeRatio := debts[1].Salary / sumSalaries
 
-	// Person that had greater expanses has already paid the costs and
-	// therefore the other party must pay the compensated price
-	// (regarding the salary salary) for him/her
-	if debts[0].Expanses == lesserExp {
-		debts[0].Owes = salaryRatio * pendingDebt
+	lesserIncomeOwns := debts[1].Expanses * lesserIncomeRatio
+	greaterIncomeOwns := debts[0].Expanses * greaterIncomeRatio
+
+	totalExpanses := float64(debts[0].Expanses + debts[1].Expanses)
+	expRatioByLesserInc := debts[0].Expanses / totalExpanses
+	expRatioByGreaterInc := debts[1].Expanses / totalExpanses
+
+	debt := math.Abs(greaterIncomeOwns - lesserIncomeOwns)
+
+	if expRatioByLesserInc < expRatioByGreaterInc {
+		debts[0].Owes = debt
 		debts[1].Owes = 0.0
 	} else {
-		debts[1].Owes = salaryRatio * pendingDebt
 		debts[0].Owes = 0.0
+		debts[1].Owes = debt
 	}
 	log.Printf("Debts fetched: %+v", debts)
 
