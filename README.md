@@ -4,11 +4,13 @@ Works in Telegram channel where both parties are joined.
 
 ### Usage
 
-	make
+	make build
 	./budget_linux_amd64 budget.toml
 
 ### Docker
 
+	make docker-run
+OR
 	docker run --rm -it -v $PWD:/app/config budget-test
 
 

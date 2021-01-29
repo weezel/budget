@@ -17,6 +17,8 @@ lint:
 	go vet ./...
 docker-build:
 	$(DOCKER) build --rm --target app -t budget-test .
+docker-run:
+	docker run --rm -v $(shell pwd):/app/config budget-test &
 debug:
 	CGO_ENABLED=1 $(GO) build $(LDFLAGS)
 obsd:
