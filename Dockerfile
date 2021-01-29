@@ -4,8 +4,8 @@ COPY . .
 RUN go get -d -v ./...
 #RUN go install -v ./...
 RUN apt-get update \
-	&& apt-get clean \\
-	&& rm -rf /var/lib/apt/lists/* \\
+	&& apt-get clean \
+	&& rm -rf /var/lib/apt/lists/* \
 	&& go get github.com/securego/gosec/v2/cmd/gosec
 RUN make build
 
