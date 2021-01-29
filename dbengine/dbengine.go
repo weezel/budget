@@ -142,19 +142,29 @@ func GetSalaryCompensatedDebts(month time.Time) ([]DebtData, error) {
 	})
 
 	sumSalaries := float64(debts[1].Salary + debts[0].Salary)
-	lesserIncomeRatio := debts[0].Salary / sumSalaries
+	lowerIncomeRatio := debts[0].Salary / sumSalaries
 	greaterIncomeRatio := debts[1].Salary / sumSalaries
 
-	lesserIncomeOwns := debts[1].Expanses * lesserIncomeRatio
-	greaterIncomeOwns := debts[0].Expanses * greaterIncomeRatio
+	lowerIncomeOwes := debts[1].Expanses * lowerIncomeRatio
+	greaterIncomeOwes := debts[0].Expanses * greaterIncomeRatio
 
 	totalExpanses := float64(debts[0].Expanses + debts[1].Expanses)
-	expRatioByLesserInc := debts[0].Expanses / totalExpanses
+	expRatioByLowerInc := debts[0].Expanses / totalExpanses
 	expRatioByGreaterInc := debts[1].Expanses / totalExpanses
 
-	debt := math.Abs(greaterIncomeOwns - lesserIncomeOwns)
+	debt := math.Abs(greaterIncomeOwes - lowerIncomeOwes)
 
-	if expRatioByLesserInc < expRatioByGreaterInc {
+	log.Printf("Sum of salaries: %.2f", sumSalaries)
+	log.Printf("Lower income ration: %.2f", lowerIncomeRatio)
+	log.Printf("Lower income owes: %.2f", lowerIncomeOwes)
+	log.Printf("Greater income ration: %.2f", greaterIncomeRatio)
+	log.Printf("Greater income owes: %.2f", greaterIncomeOwes)
+	log.Printf("Expanses ratio by lower income: %.2f", expRatioByLowerInc)
+	log.Printf("Expanses ratio by greater income: %.2f", expRatioByGreaterInc)
+	log.Printf("Total expanses: %.2f", totalExpanses)
+	log.Printf("Debt in the end: %.2f", debt)
+
+	if expRatioByLowerInc < expRatioByGreaterInc {
 		debts[0].Owes = debt
 		debts[1].Owes = 0.0
 	} else {
@@ -311,9 +321,9 @@ func GetSalariesByMonthRange(startMonth time.Time, endMonth time.Time) ([]DebtDa
 	}
 	defer stmt.Close()
 
-	res, err := stmt.Query(
-		startMonth.Format("01-2006"),
-		endMonth.Format("01-2006"))
+	s, e := startMonth.UTC().Format("01-2006"),
+		endMonth.UTC().Format("01-2006")
+	res, err := stmt.Query(s, e)
 	if err != nil {
 		errMsg := fmt.Sprintf(
 			"ERROR: Couldn't get list of salaries: %v",
@@ -340,9 +350,8 @@ func GetSalariesByMonthRange(startMonth time.Time, endMonth time.Time) ([]DebtDa
 		salaries = append(salaries, salary)
 
 	}
-	log.Printf("Half year salaries starting on %s are %+v",
-		startMonth.UTC().Format("01-2006"),
-		salaries)
+	log.Printf("Salaries starting on %s between %s are %+v",
+		s, e, salaries)
 
 	return salaries, nil
 }
