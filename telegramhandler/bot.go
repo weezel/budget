@@ -10,6 +10,7 @@ import (
 	"time"
 	"weezel/budget/dbengine"
 	"weezel/budget/external"
+	"weezel/budget/outputs"
 	"weezel/budget/utils"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -185,6 +186,15 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 					"Ei ostoja tässä kuussa")
 				_ = SendTelegram(bot, outMsg, "noPurchasesByUser", false)
 				continue
+			}
+
+			var spendings external.SpendingHTMLOutput = external.SpendingHTMLOutput{
+				Username: ,
+			}
+
+			htmlPage, err = outputs.HTML(spending)
+			if err != nil {
+				log.Printf("Couldn't generate HTML results: %s", err)
 			}
 
 			var finalMsg []string = make([]string, len(spending))

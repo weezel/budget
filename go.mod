@@ -4,6 +4,7 @@ go 1.15
 
 require (
 	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible
+	github.com/google/go-cmp v0.5.5
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/pelletier/go-toml v1.8.1
 	github.com/stretchr/testify v1.6.1

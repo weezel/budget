@@ -9,3 +9,9 @@ type SpendingHistory struct {
 	Spending  float64
 	EventName string
 }
+
+type SpendingHTMLOutput struct {
+	From      time.Time
+	To        time.Time
+	Spendings []SpendingHistory
+}
