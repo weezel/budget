@@ -8,6 +8,7 @@ import (
 	"time"
 	"weezel/budget/external"
 
+	"github.com/google/go-cmp/cmp"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -262,139 +263,6 @@ INSERT INTO budget (username, shopname, category, purchasedate, price) VALUES
 	}
 }
 
-func Test_GetMonthlySpending(t *testing.T) {
-	// FIXME soon
-	t.Skip()
-	memDb, _ := sql.Open("sqlite3", ":memory:")
-	defer memDb.Close()
-
-	UpdateDBReference(memDb)
-	CreateSchema(memDb)
-
-	_, err := memDb.Exec(`
-INSERT INTO budget (username, shopname, category, purchasedate, price) VALUES
-	('alice', 'lidl',   '', '01-2020',  12.0),
-	('alice', 'lidl',   '', '01-2020',   2.0),
-	('tom',   'lidl',   '', '01-2020',  10.0),
-	('alice', 'lidl',   '', '02-2020',   9.0),
-	('tom',   'lidl',   '', '02-2020',  15.4),
-	('alice', 'lidl',   '', '03-2020', 17.66),
-	('alice', 'lidl',   '', '03-2020',  15.8),
-	('tom',   'lidl',   '', '03-2020',   4.4),
-	('alice', 'lidl',   '', '04-2020', 318.9),
-	('tom',   'lidl',   '', '04-2020', 559.9),
-	('alice', 'lidl',   '', '04-2020',   4.3),
-	('tom',   'ikea',   '', '06-2020',   8.0),
-	('alice', 'lidl',   '', '07-2020',   1.0),
-	('alice', 'lidl',   '', '07-2020',   2.0),
-	('alice', 'lidl',   '', '07-2020',   4.0),
-	('tom',   'ikea',   '', '07-2020',  16.0),
-	('alice', 'amazon', '', '08-2020', 128.0),
-	('alice', 'amazon', '', '08-2020',  32.0),
-	('tom',   'siwa',   '', '08-2021', 256.0),
-	('tom',   'siwa',   '', '08-2021', 512.0) ;`)
-	if err != nil {
-		t.Fatalf("Unexpected error in SQL INSERT: %v", err)
-	}
-
-	tests := []struct {
-		name    string
-		want    []external.SpendingHistory
-		wantErr bool
-	}{
-		{
-			"Get annual spending",
-			[]external.SpendingHistory{
-				{
-					Username:  "alice",
-					MonthYear: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
-					Spending:  14.0,
-				},
-				{
-					Username:  "tom",
-					MonthYear: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
-					Spending:  10.0,
-				},
-				{
-					Username:  "alice",
-					MonthYear: time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
-					Spending:  9.0,
-				},
-				{
-					Username:  "tom",
-					MonthYear: time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
-					Spending:  15.4,
-				},
-				{
-					Username:  "alice",
-					MonthYear: time.Date(2020, 3, 1, 0, 0, 0, 0, time.UTC),
-					Spending:  33.46,
-				},
-				{
-					Username:  "tom",
-					MonthYear: time.Date(2020, 3, 1, 0, 0, 0, 0, time.UTC),
-					Spending:  4.4,
-				},
-				{
-					Username:  "alice",
-					MonthYear: time.Date(2020, 4, 1, 0, 0, 0, 0, time.UTC),
-					Spending:  323.2,
-				},
-				{
-					Username:  "tom",
-					MonthYear: time.Date(2020, 4, 1, 0, 0, 0, 0, time.UTC),
-					Spending:  559.9,
-				},
-				{
-					Username:  "tom",
-					MonthYear: time.Date(2020, 6, 1, 0, 0, 0, 0, time.UTC),
-					Spending:  8.0,
-				},
-				{
-					Username:  "alice",
-					MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
-					Spending:  7.0,
-				},
-				{
-					Username:  "tom",
-					MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
-					Spending:  16.0,
-				},
-				{
-					Username:  "alice",
-					MonthYear: time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC),
-					Spending:  160.0,
-				},
-			},
-			false,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetMonthlySpending()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("%s: getSpendingNumbers() error = %+v, wantErr %+v",
-					tt.name,
-					err,
-					tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("%s: getSpendingNumbers() = %+v, want %+v",
-					tt.name,
-					got,
-					tt.want)
-			}
-
-			// var b []byte = []byte{}
-			// if b, err = plotters.LineHistogramOfAnnualSpending(got); err != nil {
-			// 	t.Errorf("AIJAI: %s", err)
-			// }
-			// ioutil.WriteFile("testikuva.png", b, 0600)
-		})
-	}
-}
-
 func TestGetSalariesByMonth(t *testing.T) {
 	memDb, _ := sql.Open("sqlite3", ":memory:")
 	defer memDb.Close()
@@ -558,33 +426,41 @@ func TestGetMonthlyPurchasesByUser(t *testing.T) {
 	}
 
 	type args struct {
-		username string
-		month    time.Time
+		username   string
+		startMonth time.Time
+		endMonth   time.Time
 	}
+
 	tests := []struct {
 		name    string
 		args    args
-		want    []external.SpendingHistory
+		want    map[time.Time][]external.SpendingHistory
 		wantErr bool
 	}{
 		{
 			"Ding dong",
-			args{"alice", time.Date(2020, 7, 1, 1, 0, 0, 0, time.UTC)},
-			[]external.SpendingHistory{
-				{
-					MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
-					EventName: "lidl",
-					Spending:  1.0,
-				},
-				{
-					MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
-					EventName: "lidl",
-					Spending:  2.0,
-				},
-				{
-					MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
-					EventName: "lidl",
-					Spending:  4.0,
+			args{
+				"alice",
+				time.Date(2020, 7, 1, 1, 0, 0, 0, time.UTC),
+				time.Date(2020, 7, 1, 1, 0, 0, 0, time.UTC).AddDate(0, 1, -1),
+			},
+			map[time.Time][]external.SpendingHistory{
+				time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC): []external.SpendingHistory{
+					{
+						MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
+						EventName: "lidl",
+						Spending:  1.0,
+					},
+					{
+						MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
+						EventName: "lidl",
+						Spending:  2.0,
+					},
+					{
+						MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
+						EventName: "lidl",
+						Spending:  4.0,
+					},
 				},
 			},
 			false,
@@ -592,7 +468,7 @@ func TestGetMonthlyPurchasesByUser(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetMonthlyPurchasesByUser(tt.args.username, tt.args.month)
+			got, err := GetMonthlyPurchasesByUser(tt.args.username, tt.args.startMonth, tt.args.endMonth)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("%s: GetMonthlyPurchasesByUser() error = %v, wantErr %v",
 					tt.name,
@@ -600,11 +476,10 @@ func TestGetMonthlyPurchasesByUser(t *testing.T) {
 					tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("%s: GetMonthlyPurchasesByUser() = %v, want %v",
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("%s: GetMonthlyPurchasesByUser() mismatch: %s",
 					tt.name,
-					got,
-					tt.want)
+					diff)
 			}
 		})
 	}

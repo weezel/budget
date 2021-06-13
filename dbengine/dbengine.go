@@ -176,61 +176,18 @@ func GetSalaryCompensatedDebts(month time.Time) ([]DebtData, error) {
 	return debts, nil
 }
 
-func GetMonthlySpending() ([]external.SpendingHistory, error) {
-	spending := make([]external.SpendingHistory, 0)
-
-	stmt, err := dbConn.Prepare(MonthlySpendingQuery)
-	if err != nil {
-		errMsg := fmt.Sprintf(
-			"ERROR: Failed to prepare spending query: %v",
-			err)
-		return []external.SpendingHistory{}, errors.New(errMsg)
-	}
-	defer stmt.Close()
-
-	res, err := stmt.Query("%" + time.Now().Format("2006"))
-	if err != nil {
-		errMsg := fmt.Sprintf(
-			"ERROR: Couldn't get history of spending: %v",
-			err)
-		return []external.SpendingHistory{}, errors.New(errMsg)
-	}
-	defer func() {
-		if err := res.Close(); err != nil {
-			log.Printf("ERROR: couldn't close file handle in GetMonthlySpending: %s", err)
-		}
-	}()
-
-	for res.Next() {
-		s := external.SpendingHistory{}
-		var tmpDate string
-
-		if err := res.Scan(&s.Username, &tmpDate, &s.Spending); err != nil {
-			log.Printf("ERROR: couldn't parse spending: %s", err)
-			continue
-		}
-
-		parsedDate, err := time.Parse("01-2006", tmpDate)
-		if err != nil {
-			log.Printf("ERROR: Couldn't parse month-year for spending: %v", err)
-			continue
-		}
-		s.MonthYear = parsedDate
-
-		spending = append(spending, s)
-	}
-	return spending, nil
-}
-
-func GetMonthlyPurchasesByUser(username string, month time.Time) ([]external.SpendingHistory, error) {
-	spending := make([]external.SpendingHistory, 0)
+func GetMonthlyPurchasesByUser(username string, startMonth time.Time, endMonth time.Time) (
+	map[time.Time][]external.SpendingHistory,
+	error,
+) {
+	spending := make(map[time.Time][]external.SpendingHistory, 0)
 
 	stmt, err := dbConn.Prepare(MonthlyPurchasesByUserQuery)
 	if err != nil {
 		errMsg := fmt.Sprintf(
 			"ERROR: Failed to prepare purchases by user query: %v",
 			err)
-		return []external.SpendingHistory{}, errors.New(errMsg)
+		return map[time.Time][]external.SpendingHistory{}, errors.New(errMsg)
 	}
 	defer func() {
 		err := stmt.Close() // FIXME
@@ -239,35 +196,37 @@ func GetMonthlyPurchasesByUser(username string, month time.Time) ([]external.Spe
 		}
 	}()
 
-	res, err := stmt.Query(username, month.Format("01-2006"))
-	if err != nil {
-		errMsg := fmt.Sprintf(
-			"ERROR: Couldn't get purchases by user: %v",
-			err)
-		return []external.SpendingHistory{}, errors.New(errMsg)
-	}
-	defer func() {
-		if err := res.Close(); err != nil {
-			log.Printf("ERROR: couldn't close file handle in GetMonthlySpending: %s", err)
-		}
-	}()
-
-	for res.Next() {
-		s := external.SpendingHistory{}
-		var tmpDate string
-
-		if err := res.Scan(&tmpDate, &s.EventName, &s.Spending); err != nil {
-			log.Printf("ERROR: couldn't parse purchases by user: %s", err)
-			continue
-		}
-		parsedDate, err := time.Parse("01-2006", tmpDate)
+	for iterMonth := startMonth; iterMonth.Before(endMonth); iterMonth = iterMonth.AddDate(0, 1, 0) {
+		res, err := stmt.Query(username, startMonth.Format("01-2006"))
 		if err != nil {
-			log.Printf("ERROR: Couldn't parse month-year for spending: %v", err)
-			continue
+			errMsg := fmt.Sprintf(
+				"ERROR: Couldn't get purchases by user: %v",
+				err)
+			return map[time.Time][]external.SpendingHistory{}, errors.New(errMsg)
 		}
-		s.MonthYear = parsedDate
+		defer func() {
+			if err := res.Close(); err != nil {
+				log.Printf("ERROR: couldn't close file handle in GetMonthlySpending: %s", err)
+			}
+		}()
 
-		spending = append(spending, s)
+		for res.Next() {
+			s := external.SpendingHistory{}
+			var tmpDate string
+
+			if err := res.Scan(&tmpDate, &s.EventName, &s.Spending); err != nil {
+				log.Printf("ERROR: couldn't parse purchases by user: %s", err)
+				continue
+			}
+			parsedDate, err := time.Parse("01-2006", tmpDate)
+			if err != nil {
+				log.Printf("ERROR: Couldn't parse month-year for spending: %v", err)
+				continue
+			}
+			s.MonthYear = parsedDate
+
+			spending[s.MonthYear] = append(spending[s.MonthYear], s)
+		}
 	}
 	return spending, nil
 }
