@@ -10,20 +10,26 @@ BINARY		 = budget
 .PHONY: all analysis obsd test
 
 build: test lint
-	GOOS=linux GOARCH=$(GOARCH) CGO_ENABLED=1 \
+	GOOS=linux GOARCH=$(GOARCH) \
 	     $(GO) build $(LDFLAGS) -o $(BINARY)_linux_$(GOARCH)
+
 lint:
 	gosec ./...
 	go vet ./...
+
 docker-build:
 	$(DOCKER) build --rm --target app -t budget-test .
+
 docker-run:
 	docker run --rm -v $(shell pwd):/app/config budget-test &
+
 debug:
 	CGO_ENABLED=1 $(GO) build $(LDFLAGS)
+
 obsd:
-	GOOS=openbsd GOARCH=$(GOARCH) CGO_ENABLED=1 \
+	GOOS=openbsd GOARCH=$(GOARCH) \
 	     $(GO) build $(LDFLAGS) -o $(BINARY)_openbsd_$(GOARCH)
+
 test:
 	go test ./...
 
