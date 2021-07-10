@@ -10,5 +10,5 @@ func CalcSha256Sum(data []byte) string {
 		return ""
 	}
 	tmpHash := sha256.Sum256(data)
-	return hex.EncodeToString(tmpHash[:])
+	return hex.EncodeToString(tmpHash[:])[0:16]
 }
