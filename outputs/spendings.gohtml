@@ -5,8 +5,8 @@
 <title>Kulutukset</title>
 </head>
 <body>
-    <h1>Käyttäjän {{ (index .Spendings 0).Username }} kulutukset</h1>
-    <h3>Alkaen {{ .From.Format "01-02-2006" }} ja {{ .To.Format "01-02-2006" }} asti</h3>
+    <h1>Käyttäjän {{ .GetOne.Username }} kulutukset</h1>
+    <h3>Alkaen {{ .From.Format "02-01-2006" }} ja {{ .To.Format "02-01-2006" }} asti</h3>
     <table width=600px>
     <col style="width:150px">
 	<col style="width:100px">
@@ -20,13 +20,15 @@
     </thead>
 
     <tbody>
-    {{ range $idx, $item := .Spendings }}
+    {{- range $s := .Spendings }}
+        {{- range $puchMonth, $items := $s }}
     <tr>
-        <td>{{ $item.MonthYear.Format "01-02-2006" }}</td>
-        <td>{{ $item.Spending }}</td>
-        <td>{{ $item.EventName }}</td>
+        <td>{{- .MonthYear.Format "02-01-2006" }}</td>
+        <td>{{- .Spending }}</td>
+        <td>{{- .EventName }}</td>
     </tr>
-    {{ end }}
+        {{- end }}
+    {{- end }}
     </tbody>
 
     </table>

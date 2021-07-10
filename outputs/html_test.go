@@ -1,6 +1,7 @@
 package outputs
 
 import (
+	"io/ioutil"
 	"testing"
 	"time"
 	"weezel/budget/external"
@@ -22,26 +23,48 @@ func TestHTML(t *testing.T) {
 			"Test output",
 			args{
 				external.SpendingHTMLOutput{
-					From: time.Date(2020, 11, 1, 1, 0, 0, 0, time.UTC),
+					From: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
 					To:   time.Date(2020, 12, 1, 1, 0, 0, 0, time.UTC),
-					Spendings: []external.SpendingHistory{
-						{
-							Username:  "Dille",
-							MonthYear: time.Date(2020, 11, 1, 1, 0, 0, 0, time.UTC),
-							Spending:  10,
-							EventName: "beer",
+					Spendings: map[time.Time][]external.SpendingHistory{
+						time.Date(2020, 10, 1, 0, 0, 0, 0, time.UTC): {
+							{
+								Username:  "Dille",
+								MonthYear: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
+								Spending:  10,
+								EventName: "beer",
+							},
+							{
+								Username:  "Dille",
+								MonthYear: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
+								Spending:  20.5,
+								EventName: "pad thai",
+							},
+							{
+								Username:  "Dille",
+								MonthYear: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
+								Spending:  850.99,
+								EventName: "shoes",
+							},
 						},
-						{
-							Username:  "Dille",
-							MonthYear: time.Date(2020, 11, 1, 1, 0, 0, 0, time.UTC),
-							Spending:  20.5,
-							EventName: "pad thai",
-						},
-						{
-							Username:  "Dille",
-							MonthYear: time.Date(2020, 11, 1, 1, 0, 0, 0, time.UTC),
-							Spending:  850.99,
-							EventName: "shoes",
+						time.Date(2020, 11, 1, 0, 0, 0, 0, time.UTC): {
+							{
+								Username:  "Dille",
+								MonthYear: time.Date(2020, 11, 1, 1, 0, 0, 0, time.UTC),
+								Spending:  444.4,
+								EventName: "moar beer",
+							},
+							{
+								Username:  "Dille",
+								MonthYear: time.Date(2020, 11, 1, 1, 0, 0, 0, time.UTC),
+								Spending:  555.5,
+								EventName: "cat food",
+							},
+							{
+								Username:  "Dille",
+								MonthYear: time.Date(2020, 11, 1, 1, 0, 0, 0, time.UTC),
+								Spending:  666.6,
+								EventName: "dog food",
+							},
 						},
 					},
 				},
@@ -55,7 +78,7 @@ func TestHTML(t *testing.T) {
 </head>
 <body>
     <h1>Käyttäjän Dille kulutukset</h1>
-    <h3>Alkaen 11-01-2020 ja 12-01-2020 asti</h3>
+    <h3>Alkaen 01-10-2020 ja 01-12-2020 asti</h3>
     <table width=600px>
     <col style="width:150px">
 	<col style="width:100px">
@@ -69,30 +92,42 @@ func TestHTML(t *testing.T) {
     </thead>
 
     <tbody>
-    
     <tr>
-        <td>11-01-2020</td>
+        <td>01-10-2020</td>
         <td>10</td>
         <td>beer</td>
     </tr>
-    
     <tr>
-        <td>11-01-2020</td>
+        <td>01-10-2020</td>
         <td>20.5</td>
         <td>pad thai</td>
     </tr>
-    
     <tr>
-        <td>11-01-2020</td>
+        <td>01-10-2020</td>
         <td>850.99</td>
         <td>shoes</td>
     </tr>
-    
+    <tr>
+        <td>01-11-2020</td>
+        <td>444.4</td>
+        <td>moar beer</td>
+    </tr>
+    <tr>
+        <td>01-11-2020</td>
+        <td>555.5</td>
+        <td>cat food</td>
+    </tr>
+    <tr>
+        <td>01-11-2020</td>
+        <td>666.6</td>
+        <td>dog food</td>
+    </tr>
     </tbody>
 
     </table>
 </body>
-</html>`),
+</html>
+`),
 			false,
 		},
 	}
@@ -100,11 +135,13 @@ func TestHTML(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := HTML(tt.args.spending)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("HTML() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("%s: HTML() error = %v, wantErr %v",
+					tt.name, err, tt.wantErr)
 				return
 			}
+			ioutil.WriteFile("test-html-output.html", got, 0600)
 			if diff := cmp.Diff(got, tt.want); diff != "" {
-				t.Errorf("HTML() diff = %s", diff)
+				t.Errorf("%s: HTML() diff = %s", tt.name, diff)
 			}
 		})
 	}
