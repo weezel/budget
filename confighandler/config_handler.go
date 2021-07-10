@@ -12,8 +12,13 @@ type TeleConfig struct {
 	WorkingDir string
 }
 
+type WebserverConfig struct {
+	HttpPort string
+}
+
 type TomlConfig struct {
-	TeleConfig TeleConfig
+	TeleConfig      TeleConfig
+	WebserverConfig WebserverConfig
 }
 
 func LoadConfig(filedata []byte) TomlConfig {

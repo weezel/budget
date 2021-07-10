@@ -11,8 +11,12 @@ func TestConfigHandler(t *testing.T) {
 [teleconfig]
 ChannelId = -987654
 ApiKey = "abcdefg:1234"
+
+[webserverconfig]
+HttpPort = ":8080"
 `)
 	tomlConfig := LoadConfig(data)
 	assert.Equal(t, int64(-987654), tomlConfig.TeleConfig.ChannelId)
 	assert.Equal(t, "abcdefg:1234", tomlConfig.TeleConfig.ApiKey)
+	assert.Equal(t, ":8080", tomlConfig.WebserverConfig.HttpPort)
 }
