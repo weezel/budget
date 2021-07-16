@@ -1,7 +1,6 @@
 package outputs
 
 import (
-	"io/ioutil"
 	"testing"
 	"time"
 	"weezel/budget/external"
@@ -139,7 +138,6 @@ func TestHTML(t *testing.T) {
 					tt.name, err, tt.wantErr)
 				return
 			}
-			ioutil.WriteFile("test-html-output.html", got, 0600)
 			if diff := cmp.Diff(got, tt.want); diff != "" {
 				t.Errorf("%s: HTML() diff = %s", tt.name, diff)
 			}
