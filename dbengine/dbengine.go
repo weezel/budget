@@ -180,7 +180,7 @@ func GetMonthlyPurchasesByUser(username string, startMonth time.Time, endMonth t
 	map[time.Time][]external.SpendingHistory,
 	error,
 ) {
-	spending := make(map[time.Time][]external.SpendingHistory, 0)
+	spending := make(map[time.Time][]external.SpendingHistory)
 
 	stmt, err := dbConn.Prepare(MonthlyPurchasesByUserQuery)
 	if err != nil {
@@ -196,8 +196,8 @@ func GetMonthlyPurchasesByUser(username string, startMonth time.Time, endMonth t
 		}
 	}()
 
-	for iterMonth := startMonth; iterMonth.Before(endMonth); iterMonth = iterMonth.AddDate(0, 1, 0) {
-		res, err := stmt.Query(username, startMonth.Format("01-2006"))
+	for iterMonth := startMonth; iterMonth.Before(endMonth) || iterMonth.Equal(endMonth); iterMonth = iterMonth.AddDate(0, 1, 0) {
+		res, err := stmt.Query(username, iterMonth.Format("01-2006"))
 		if err != nil {
 			errMsg := fmt.Sprintf(
 				"ERROR: Couldn't get purchases by user: %v",
@@ -206,7 +206,7 @@ func GetMonthlyPurchasesByUser(username string, startMonth time.Time, endMonth t
 		}
 		defer func() {
 			if err := res.Close(); err != nil {
-				log.Printf("ERROR: couldn't close file handle in GetMonthlySpending: %s", err)
+				log.Printf("ERROR: couldn't close file handle in GetMonthlyPurchasesByUser: %s", err)
 			}
 		}()
 

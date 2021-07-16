@@ -438,14 +438,14 @@ func TestGetMonthlyPurchasesByUser(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			"Ding dong",
+			"One month",
 			args{
-				"alice",
-				time.Date(2020, 7, 1, 1, 0, 0, 0, time.UTC),
-				time.Date(2020, 7, 1, 1, 0, 0, 0, time.UTC).AddDate(0, 1, -1),
+				username:   "alice",
+				startMonth: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
+				endMonth:   time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
 			},
 			map[time.Time][]external.SpendingHistory{
-				time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC): []external.SpendingHistory{
+				time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC): {
 					{
 						MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
 						EventName: "lidl",
@@ -465,6 +465,36 @@ func TestGetMonthlyPurchasesByUser(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"Two months",
+			args{
+				username:   "alice",
+				startMonth: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+				endMonth:   time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
+			},
+			map[time.Time][]external.SpendingHistory{
+				time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC): {
+					{
+						MonthYear: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+						EventName: "lidl",
+						Spending:  2.0,
+					},
+					{
+						MonthYear: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+						EventName: "lidl",
+						Spending:  12.0,
+					},
+				},
+				time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC): {
+					{
+						MonthYear: time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
+						EventName: "lidl",
+						Spending:  9.0,
+					},
+				},
+			},
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -476,8 +506,8 @@ func TestGetMonthlyPurchasesByUser(t *testing.T) {
 					tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
-				t.Errorf("%s: GetMonthlyPurchasesByUser() mismatch: %s",
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("%s: GetMonthlyPurchasesByUser() mismatch:\n%s",
 					tt.name,
 					diff)
 			}
