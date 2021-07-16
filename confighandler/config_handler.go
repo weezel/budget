@@ -14,6 +14,7 @@ type TeleConfig struct {
 
 type WebserverConfig struct {
 	HttpPort string
+	Hostname string
 }
 
 type TomlConfig struct {
