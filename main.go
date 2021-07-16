@@ -5,14 +5,19 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	"weezel/budget/confighandler"
 	"weezel/budget/dbengine"
+	"weezel/budget/shortlivedpage"
 	"weezel/budget/telegramhandler"
 	"weezel/budget/utils"
+	"weezel/budget/web"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 const (
@@ -96,8 +101,27 @@ func main() {
 	dbengine.UpdateDBReference(db)
 	db = nil // GC variable
 
-	telegramhandler.ConnectionHandler(
-		conf.TeleConfig.ApiKey,
+	bot, err := tgbotapi.NewBotAPI(conf.TeleConfig.ApiKey)
+	if err != nil {
+		log.Fatalf("Couldn't create a new bot: %s", err)
+	}
+	bot.Debug = false
+	log.Printf("Using sername: %s", bot.Self.UserName)
+	go telegramhandler.ConnectionHandler(
+		bot,
 		conf.TeleConfig.ChannelId,
-		false)
+		conf.WebserverConfig.Hostname)
+
+	shortlivedpage.InitScheduler()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", web.ApiHandler)
+	log.Printf("Listening on port %q\n", conf.WebserverConfig.HttpPort)
+	err = http.ListenAndServe(conf.WebserverConfig.HttpPort, mux)
+	if err != nil {
+		log.Fatalf("Cannot listen on port %q: %q",
+			conf.WebserverConfig.HttpPort,
+			err)
+	}
+
 }

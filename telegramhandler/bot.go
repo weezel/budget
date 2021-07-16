@@ -11,6 +11,7 @@ import (
 	"weezel/budget/dbengine"
 	"weezel/budget/external"
 	"weezel/budget/outputs"
+	"weezel/budget/shortlivedpage"
 	"weezel/budget/utils"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -49,25 +50,16 @@ func SendTelegram(
 	return true
 }
 
-func ConnectionHandler(apikey string, channelId int64, debug bool) {
-	bot, err := tgbotapi.NewBotAPI(apikey)
-	if err != nil {
-		log.Panicf("Possible error in config file: %s", err)
-	}
-
-	bot.Debug = debug
-
-	log.Printf("Authorized on account %s", bot.Self.UserName)
-
-	u := tgbotapi.NewUpdate(0)
-	u.Timeout = 60
-
-	updates, err := bot.GetUpdatesChan(u)
-
+func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 	var command string
 	var shopName string
 	var lastElem string
 	var price float64
+
+	u := tgbotapi.NewUpdate(0)
+	u.Timeout = 60
+	updates, err := bot.GetUpdatesChan(u)
+
 	for update := range updates {
 		if update.Message == nil { // ignore any non-Message Updates
 			continue
@@ -162,7 +154,7 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 				continue
 			}
 
-			month, err := time.Parse("01-2006", tokenized[1])
+			monthYear, err := time.Parse("01-2006", tokenized[1])
 			if err != nil {
 				helpMsg := "Virhe päivämäärän parsinnassa. Oltava muotoa kk-vvvv"
 				outMsg := tgbotapi.NewMessage(channelId, helpMsg)
@@ -171,7 +163,8 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 				}
 			}
 
-			spending, err := dbengine.GetMonthlyPurchasesByUser(username, month)
+			spending, err := dbengine.GetMonthlyPurchasesByUser(
+				username, monthYear, monthYear)
 			if err != nil {
 				log.Println(err)
 				outMsg := tgbotapi.NewMessage(
@@ -180,33 +173,36 @@ func ConnectionHandler(apikey string, channelId int64, debug bool) {
 				_ = SendTelegram(bot, outMsg, "purchByUser", false)
 				continue
 			}
-			if reflect.DeepEqual(spending, []external.SpendingHistory{}) {
-				outMsg := tgbotapi.NewMessage(
-					channelId,
-					"Ei ostoja tässä kuussa")
-				_ = SendTelegram(bot, outMsg, "noPurchasesByUser", false)
-				continue
-			}
 
 			var spendings external.SpendingHTMLOutput = external.SpendingHTMLOutput{
-				Username: ,
+				From:      monthYear,
+				To:        monthYear,
+				Spendings: spending,
 			}
 
-			htmlPage, err = outputs.HTML(spending)
+			htmlPage, err := outputs.HTML(spendings)
 			if err != nil {
 				log.Printf("Couldn't generate HTML results: %s", err)
 			}
 
-			var finalMsg []string = make([]string, len(spending))
-			for i, s := range spending {
-				cleanedEvent := strings.ReplaceAll(s.EventName, "_", " ")
-				msg := fmt.Sprintf("%s  %s  %.2f",
-					s.MonthYear.Format("01-2006"),
-					cleanedEvent,
-					s.Spending)
-				finalMsg[i] = msg
+			htmlPageHash := utils.CalcSha256Sum(htmlPage)
+			shortlivedPage := shortlivedpage.ShortLivedPage{
+				TimeToLiveSeconds: 600,
+				StartTime:         time.Now(),
+				HtmlPage:          &htmlPage,
 			}
-			outMsg := tgbotapi.NewMessage(channelId, strings.Join(finalMsg, "\n"))
+			addOk := shortlivedpage.Add(htmlPageHash, shortlivedPage)
+			if addOk {
+				endTime := shortlivedPage.StartTime.Add(
+					time.Duration(shortlivedPage.TimeToLiveSeconds))
+				log.Printf("Added shortlived page %s with end time %s",
+					htmlPageHash, endTime)
+			}
+
+			urlBase := fmt.Sprintf("Kulutustiedot saatavilla 10min ajan täällä: http://%s/spendings?page_hash=%s",
+				hostname,
+				htmlPageHash)
+			outMsg := tgbotapi.NewMessage(channelId, urlBase)
 			if SendTelegram(bot, outMsg, "ostot2", false) == false {
 				continue
 			}
