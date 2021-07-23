@@ -23,11 +23,11 @@ func displayHelp(username string, channelId int64, bot *tgbotapi.BotAPI) {
 	log.Printf("Help requested by %s", username)
 	helpMsg := "Tunnistan seuraavat komennot:\n\n"
 	helpMsg += "kulutus\n\n"
-	helpMsg += "osto paikka [vapaaehtoinen pvm muodossa kk-vvvv] xx.xx\n\n"
-	helpMsg += "ostot [kk-vvvv]\n\n"
-	helpMsg += "palkka kk-vvvv xxxx.xx (nettona)\r\n"
-	helpMsg += "palkat kk-vvvv\r\n"
-	helpMsg += "velat, velkaa kk-vvvv\n\n"
+	helpMsg += "**osto** paikka [vapaaehtoinen pvm muodossa kk-vvvv] xx.xx\n\n"
+	helpMsg += "**ostot** kk-vvvv kk-vvvv (mistä mihin)\n\n"
+	helpMsg += "**palkka** kk-vvvv xxxx.xx (nettona)\r\n"
+	helpMsg += "**palkat** kk-vvvv\r\n"
+	helpMsg += "**velat** tai **velkaa** kk-vvvv\n\n"
 	outMsg := tgbotapi.NewMessage(channelId, helpMsg)
 	if _, err := bot.Send(outMsg); err != nil {
 		log.Printf("ERROR: sending to channel failed: %s", err)
@@ -77,37 +77,6 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 		command = strings.ToLower(tokenized[0])
 
 		switch command {
-		case "kulutus":
-			log.Printf("Spending report requested by %s", username)
-			// spendingData, err := dbengine.GetMonthlySpending()
-			// if err != nil {
-			// 	log.Print(err)
-			// 	continue
-			// }
-			// spendingImg, err := plotters.LineHistogramOfAnnualSpending(spendingData)
-			// if err != nil {
-			// 	log.Print(err)
-			// 	continue
-			// }
-			// imgSum := utils.CalcSha256Sum(spendingImg)
-			// if imgSum == "" {
-			// 	log.Print("ERROR: plotting image checksum was zero")
-			// 	continue
-			// }
-			// photoUpload := tgbotapi.NewPhotoUpload(
-			// 	channelId,
-			// 	tgbotapi.FileBytes{
-			// 		Name:  imgSum + ".png",
-			// 		Bytes: spendingImg,
-			// 	},
-			// )
-			// _, err = bot.Send(photoUpload)
-			// if err != nil {
-			// 	log.Printf("ERROR: upload spending img failed: %v", err)
-			// }
-
-			// log.Print("Spending report generated")
-			continue
 		case "osto":
 			if len(tokenized) < 3 {
 				displayHelp(username, channelId, bot)
@@ -149,22 +118,31 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 			}
 			continue
 		case "ostot":
-			if len(tokenized) < 2 {
+			if len(tokenized) < 3 {
 				displayHelp(username, channelId, bot)
 				continue
 			}
 
-			monthYear, err := time.Parse("01-2006", tokenized[1])
+			startMonth, err := time.Parse("01-2006", tokenized[1])
 			if err != nil {
 				helpMsg := "Virhe päivämäärän parsinnassa. Oltava muotoa kk-vvvv"
 				outMsg := tgbotapi.NewMessage(channelId, helpMsg)
-				if SendTelegram(bot, outMsg, "ostot1", false) == false {
+				if SendTelegram(bot, outMsg, "ostot-startmonth", false) == false {
+					continue
+				}
+			}
+
+			endMonth, err := time.Parse("01-2006", tokenized[2])
+			if err != nil {
+				helpMsg := "Virhe päivämäärän parsinnassa. Oltava muotoa kk-vvvv"
+				outMsg := tgbotapi.NewMessage(channelId, helpMsg)
+				if SendTelegram(bot, outMsg, "ostot-endmonth", false) == false {
 					continue
 				}
 			}
 
 			spending, err := dbengine.GetMonthlyPurchasesByUser(
-				username, monthYear, monthYear)
+				username, startMonth, endMonth)
 			if err != nil {
 				log.Println(err)
 				outMsg := tgbotapi.NewMessage(
@@ -175,8 +153,8 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 			}
 
 			var spendings external.SpendingHTMLOutput = external.SpendingHTMLOutput{
-				From:      monthYear,
-				To:        monthYear,
+				From:      startMonth,
+				To:        endMonth,
 				Spendings: spending,
 			}
 
