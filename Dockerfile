@@ -1,4 +1,4 @@
-FROM golang:1.15 as builder
+FROM golang:1.16 as builder
 WORKDIR /go/src/app
 COPY . .
 RUN go get -d -v ./...
@@ -9,7 +9,7 @@ RUN apt-get update \
 	&& go get github.com/securego/gosec/v2/cmd/gosec
 RUN make build
 
-FROM golang:1.15 as app
+FROM golang:1.16 as app
 WORKDIR /app
 COPY --from=builder --chown=1000:1000 /go/src/app/budget_linux_amd64 .
 USER 1000:1000
