@@ -6,6 +6,7 @@ import (
 
 type SpendingHistory struct {
 	_         struct{}
+	ID        int64
 	Username  string
 	MonthYear time.Time
 	Spending  float64

@@ -27,18 +27,21 @@ func TestHTML(t *testing.T) {
 					Spendings: map[time.Time][]external.SpendingHistory{
 						time.Date(2020, 10, 1, 0, 0, 0, 0, time.UTC): {
 							{
+								ID:        0,
 								Username:  "Dille",
 								MonthYear: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
 								Spending:  10,
 								EventName: "beer",
 							},
 							{
+								ID:        1,
 								Username:  "Dille",
 								MonthYear: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
 								Spending:  20.5,
 								EventName: "pad thai",
 							},
 							{
+								ID:        2,
 								Username:  "Dille",
 								MonthYear: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
 								Spending:  850.99,
@@ -47,18 +50,21 @@ func TestHTML(t *testing.T) {
 						},
 						time.Date(2020, 11, 1, 0, 0, 0, 0, time.UTC): {
 							{
+								ID:        3,
 								Username:  "Dille",
 								MonthYear: time.Date(2020, 11, 1, 1, 0, 0, 0, time.UTC),
 								Spending:  444.4,
 								EventName: "moar beer",
 							},
 							{
+								ID:        4,
 								Username:  "Dille",
 								MonthYear: time.Date(2020, 11, 1, 1, 0, 0, 0, time.UTC),
 								Spending:  555.5,
 								EventName: "cat food",
 							},
 							{
+								ID:        5,
 								Username:  "Dille",
 								MonthYear: time.Date(2020, 11, 1, 1, 0, 0, 0, time.UTC),
 								Spending:  666.6,
@@ -92,31 +98,37 @@ func TestHTML(t *testing.T) {
 
     <tbody>
     <tr>
+        <td>0</td>
         <td>01-10-2020</td>
         <td>10</td>
         <td>beer</td>
     </tr>
     <tr>
+        <td>1</td>
         <td>01-10-2020</td>
         <td>20.5</td>
         <td>pad thai</td>
     </tr>
     <tr>
+        <td>2</td>
         <td>01-10-2020</td>
         <td>850.99</td>
         <td>shoes</td>
     </tr>
     <tr>
+        <td>3</td>
         <td>01-11-2020</td>
         <td>444.4</td>
         <td>moar beer</td>
     </tr>
     <tr>
+        <td>4</td>
         <td>01-11-2020</td>
         <td>555.5</td>
         <td>cat food</td>
     </tr>
     <tr>
+        <td>5</td>
         <td>01-11-2020</td>
         <td>666.6</td>
         <td>dog food</td>

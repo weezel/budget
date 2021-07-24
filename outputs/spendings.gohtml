@@ -7,14 +7,16 @@
 <body>
     <h1>Käyttäjän {{ .GetOne.Username }} kulutukset</h1>
     <h3>Alkaen {{ .From.Format "02-01-2006" }} ja {{ .To.Format "02-01-2006" }} asti</h3>
-    <table width=600px>
-    <col style="width:150px">
-	<col style="width:100px">
-	<col style="width:350px">
+    <table width=650px>
+    <col style="width:30px">
+    <col style="width:120px">
+	<col style="width:1200px">
+	<col style="width:120px">
     <thead>
     <tr>
-        <th style="text-align:left">Aika</th>
-        <th style="text-align:left">Määrä</th>
+        <th style="text-align:left">ID</th>
+        <th style="text-align:center">Aika</th>
+        <th style="text-align:right">Määrä</th>
         <th style="text-align:left">Kuvaus</th>
     </tr>
     </thead>
@@ -23,9 +25,10 @@
     {{- range $s := .Spendings }}
         {{- range $puchMonth, $items := $s }}
     <tr>
-        <td>{{- .MonthYear.Format "02-01-2006" }}</td>
-        <td>{{- .Spending }}</td>
-        <td>{{- .EventName }}</td>
+        <td style="text-align:left">{{- .ID }}</td>
+        <td style="text-align:center">{{- .MonthYear.Format "02-01-2006" }}</td>
+        <td style="text-align:right">{{- .Spending }}</td>
+        <td style="text-align:left">{{- .EventName }}</td>
     </tr>
         {{- end }}
     {{- end }}

@@ -447,16 +447,19 @@ func TestGetMonthlyPurchasesByUser(t *testing.T) {
 			map[time.Time][]external.SpendingHistory{
 				time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC): {
 					{
+						ID:        13,
 						MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
 						EventName: "lidl",
 						Spending:  1.0,
 					},
 					{
+						ID:        14,
 						MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
 						EventName: "lidl",
 						Spending:  2.0,
 					},
 					{
+						ID:        15,
 						MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
 						EventName: "lidl",
 						Spending:  4.0,
@@ -475,11 +478,13 @@ func TestGetMonthlyPurchasesByUser(t *testing.T) {
 			map[time.Time][]external.SpendingHistory{
 				time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC): {
 					{
+						ID:        2,
 						MonthYear: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
 						EventName: "lidl",
 						Spending:  2.0,
 					},
 					{
+						ID:        1,
 						MonthYear: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
 						EventName: "lidl",
 						Spending:  12.0,
@@ -487,6 +492,7 @@ func TestGetMonthlyPurchasesByUser(t *testing.T) {
 				},
 				time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC): {
 					{
+						ID:        4,
 						MonthYear: time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
 						EventName: "lidl",
 						Spending:  9.0,

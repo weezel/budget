@@ -214,8 +214,8 @@ func GetMonthlyPurchasesByUser(username string, startMonth time.Time, endMonth t
 			s := external.SpendingHistory{}
 			var tmpDate string
 
-			if err := res.Scan(&tmpDate, &s.EventName, &s.Spending); err != nil {
-				log.Printf("ERROR: couldn't parse purchases by user: %s", err)
+			if err := res.Scan(&s.ID, &tmpDate, &s.EventName, &s.Spending); err != nil {
+				log.Errorf("couldn't parse purchases by user: %s", err)
 				continue
 			}
 			parsedDate, err := time.Parse("01-2006", tmpDate)

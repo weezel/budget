@@ -75,7 +75,7 @@ SELECT username, purchasedate, SUM(price) FROM budget
 	ORDER BY purchasedate, username;
 `
 const MonthlyPurchasesByUserQuery string = `
-SELECT purchasedate, shopname, price FROM budget
+SELECT id, purchasedate, shopname, price FROM budget
 	GROUP BY purchasedate, shopname, price
 	HAVING username = ?
 	AND purchasedate = ?
