@@ -60,6 +60,10 @@ func InsertSalary(username string, salary float64, recordTime time.Time) bool {
 		sql.Named("salary", salary),
 		sql.Named("recordtime", recordTime.Format("01-2006")),
 	)
+	if err != nil {
+		log.Errorf("failed to insert salary data: %s", err)
+		return false
+	}
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
 		log.Printf("ERROR: getting salary rows failed: %v", err)
@@ -83,6 +87,9 @@ func InsertShopping(username, shopName, category string, purchaseDate time.Time,
 		sql.Named("purchasedate", purchaseDate.Format("01-2006")),
 		sql.Named("price", price),
 	)
+	if err != nil {
+		return err
+	}
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
 		log.Printf("ERROR: getting shopping rows failed: %v", err)
