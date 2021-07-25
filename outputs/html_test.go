@@ -10,7 +10,8 @@ import (
 
 func TestHTML(t *testing.T) {
 	type args struct {
-		spending external.SpendingHTMLOutput
+		spending     external.SpendingHTMLOutput
+		templateType TemplateType
 	}
 	tests := []struct {
 		name    string
@@ -19,9 +20,9 @@ func TestHTML(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			"Test output",
+			"Test monthly spendings output",
 			args{
-				external.SpendingHTMLOutput{
+				spending: external.SpendingHTMLOutput{
 					From: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
 					To:   time.Date(2020, 12, 1, 1, 0, 0, 0, time.UTC),
 					Spendings: map[time.Time][]external.SpendingHistory{
@@ -73,6 +74,7 @@ func TestHTML(t *testing.T) {
 						},
 					},
 				},
+				templateType: MontlySpendingsTemplate,
 			},
 			[]byte(
 				`<!DOCTYPE html>
@@ -144,7 +146,7 @@ func TestHTML(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := HTML(tt.args.spending)
+			got, err := HTML(tt.args.spending, tt.args.templateType)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("%s: HTML() error = %v, wantErr %v",
 					tt.name, err, tt.wantErr)
