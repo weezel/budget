@@ -10,6 +10,7 @@ type SpendingHistory struct {
 	Username  string
 	MonthYear time.Time
 	Spending  float64
+	Salary    float64
 	EventName string
 }
 
