@@ -81,59 +81,161 @@ func TestHTML(t *testing.T) {
 <html>
 <head>
 <meta charset="utf-8" />
-<title>Kulutukset</title>
+<title>Kuukausittaiset kulutukset</title>
 </head>
 <body>
     <h1>Käyttäjän Dille kulutukset</h1>
     <h3>Alkaen 01-10-2020 ja 01-12-2020 asti</h3>
-    <table width=600px>
-    <col style="width:150px">
-	<col style="width:100px">
-	<col style="width:350px">
+    <table width=650px>
+    <col style="width:30px">
+    <col style="width:120px">
+    <col style="width:120px">
+    <col style="width:120px">
     <thead>
     <tr>
-        <th style="text-align:left">Aika</th>
-        <th style="text-align:left">Määrä</th>
+        <th style="text-align:left">ID</th>
+        <th style="text-align:center">Aika</th>
+        <th style="text-align:right">Määrä</th>
         <th style="text-align:left">Kuvaus</th>
     </tr>
     </thead>
 
     <tbody>
     <tr>
-        <td>0</td>
-        <td>01-10-2020</td>
-        <td>10</td>
-        <td>beer</td>
+        <td style="text-align:left">0</td>
+        <td style="text-align:center">01-10-2020</td>
+        <td style="text-align:right">10</td>
+        <td style="text-align:left">beer</td>
     </tr>
     <tr>
-        <td>1</td>
-        <td>01-10-2020</td>
-        <td>20.5</td>
-        <td>pad thai</td>
+        <td style="text-align:left">1</td>
+        <td style="text-align:center">01-10-2020</td>
+        <td style="text-align:right">20.5</td>
+        <td style="text-align:left">pad thai</td>
     </tr>
     <tr>
-        <td>2</td>
-        <td>01-10-2020</td>
-        <td>850.99</td>
-        <td>shoes</td>
+        <td style="text-align:left">2</td>
+        <td style="text-align:center">01-10-2020</td>
+        <td style="text-align:right">850.99</td>
+        <td style="text-align:left">shoes</td>
     </tr>
     <tr>
-        <td>3</td>
-        <td>01-11-2020</td>
-        <td>444.4</td>
-        <td>moar beer</td>
+        <td style="text-align:left">3</td>
+        <td style="text-align:center">01-11-2020</td>
+        <td style="text-align:right">444.4</td>
+        <td style="text-align:left">moar beer</td>
     </tr>
     <tr>
-        <td>4</td>
-        <td>01-11-2020</td>
-        <td>555.5</td>
-        <td>cat food</td>
+        <td style="text-align:left">4</td>
+        <td style="text-align:center">01-11-2020</td>
+        <td style="text-align:right">555.5</td>
+        <td style="text-align:left">cat food</td>
     </tr>
     <tr>
-        <td>5</td>
-        <td>01-11-2020</td>
-        <td>666.6</td>
-        <td>dog food</td>
+        <td style="text-align:left">5</td>
+        <td style="text-align:center">01-11-2020</td>
+        <td style="text-align:right">666.6</td>
+        <td style="text-align:left">dog food</td>
+    </tr>
+    </tbody>
+
+    </table>
+</body>
+</html>
+`),
+			false,
+		},
+		{
+			"Test monthly data output",
+			args{
+				spending: external.SpendingHTMLOutput{
+					From: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
+					To:   time.Date(2020, 12, 1, 1, 0, 0, 0, time.UTC),
+					Spendings: map[time.Time][]external.SpendingHistory{
+						time.Date(2020, 10, 1, 0, 0, 0, 0, time.UTC): {
+							{
+								ID:        0,
+								Username:  "Dille",
+								MonthYear: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
+								Spending:  10,
+								Salary:    2000,
+							},
+							{
+								ID:        1,
+								Username:  "John",
+								MonthYear: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
+								Spending:  5,
+								Salary:    4000,
+							},
+						},
+						time.Date(2020, 11, 1, 0, 0, 0, 0, time.UTC): {
+							{
+								ID:        2,
+								Username:  "Dille",
+								MonthYear: time.Date(2020, 11, 1, 1, 0, 0, 0, time.UTC),
+								Spending:  2.22,
+								Salary:    555.5,
+							},
+							{
+								ID:        3,
+								Username:  "John",
+								MonthYear: time.Date(2020, 11, 1, 1, 0, 0, 0, time.UTC),
+								Spending:  1.11,
+								Salary:    7.77,
+							},
+						},
+					},
+				},
+				templateType: MonthlyDataTemplate,
+			},
+			[]byte(
+				`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Kuukausittainen datapläjäys</title>
+</head>
+<body>
+    <h1>Tietoja</h1>
+    <h3>Alkaen 01-10-2020 ja 01-12-2020 asti</h3>
+    <table width=600px>
+    <col style="width:150px">
+    <col style="width:100px">
+    <col style="width:100px">
+    <col style="width:100px">
+    <thead>
+    <tr>
+        <th style="text-align:left">Käyttäjä</th>
+        <th style="text-align:center">Aika</th>
+        <th style="text-align:right">Kulut yhteensä</th>
+        <th style="text-align:right">Palkka</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    <tr>
+        <td style="text-align:left">Dille</td>
+        <td style="text-align:center">01-10-2020</td>
+        <td style="text-align:right">10</td>
+        <td style="text-align:right">2000</td>
+    </tr>
+    <tr>
+        <td style="text-align:left">John</td>
+        <td style="text-align:center">01-10-2020</td>
+        <td style="text-align:right">5</td>
+        <td style="text-align:right">4000</td>
+    </tr>
+    <tr>
+        <td style="text-align:left">Dille</td>
+        <td style="text-align:center">01-11-2020</td>
+        <td style="text-align:right">2.22</td>
+        <td style="text-align:right">555.5</td>
+    </tr>
+    <tr>
+        <td style="text-align:left">John</td>
+        <td style="text-align:center">01-11-2020</td>
+        <td style="text-align:right">1.11</td>
+        <td style="text-align:right">7.77</td>
     </tr>
     </tbody>
 
@@ -152,8 +254,8 @@ func TestHTML(t *testing.T) {
 					tt.name, err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(got, tt.want); diff != "" {
-				t.Errorf("%s: HTML() diff = %s", tt.name, diff)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("%s: HTML() diff:\n%s", tt.name, diff)
 			}
 		})
 	}
