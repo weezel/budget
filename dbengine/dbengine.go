@@ -48,6 +48,69 @@ func UpdateDBReference(db *sql.DB) {
 	dbConn = db
 }
 
+type BudgetRow struct {
+	ID           int64
+	Username     string
+	Shopname     string
+	Category     string
+	Purchasedate string
+	Price        float64
+}
+
+func GetSpendingRowByID(bid int64, username string) (BudgetRow, error) {
+	stmt, err := dbConn.Prepare(GetSpendingByIDQuery)
+	if err != nil {
+		return BudgetRow{}, err
+	}
+	defer stmt.Close()
+
+	budgetRow := BudgetRow{}
+	err = stmt.QueryRow(bid, username).Scan(
+		&budgetRow.ID,
+		&budgetRow.Username,
+		&budgetRow.Shopname,
+		&budgetRow.Category,
+		&budgetRow.Purchasedate,
+		&budgetRow.Price)
+	if err != nil {
+		return BudgetRow{}, err
+	} else if err == nil && reflect.DeepEqual(budgetRow, BudgetRow{}) {
+		errMsg := fmt.Sprintf("User not permitted to delete row %d from budget table",
+			bid)
+		return BudgetRow{}, errors.New(errMsg)
+	}
+
+	return budgetRow, nil
+}
+
+func DeleteSpendingByID(bid int64, username string) error {
+	deletableRow, err := GetSpendingRowByID(bid, username)
+	if err != nil {
+		return err
+	}
+
+	stmt, err := dbConn.Prepare(DeleteSpendingByIDQuery)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	res, err := stmt.Exec(bid, username)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected > 0 {
+		log.Printf("Deleted the following row from budget table: %#v", deletableRow)
+	}
+
+	return nil
+}
+
 func InsertSalary(username string, salary float64, recordTime time.Time) bool {
 	stmt, err := dbConn.Prepare(InsertSalaryQuery)
 	if err != nil {

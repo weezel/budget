@@ -82,9 +82,12 @@ SELECT id, purchasedate, shopname, price FROM budget
 	ORDER BY purchasedate, shopname, price;
 `
 
-const DateRangeSpendingQuery string = `
+const GetSpendingByIDQuery string = `
 SELECT * FROM budget
-	WHERE purchasedate BETWEEN ? AND ?
-	GROUP BY username, shopname
-	ORDER BY purchasedate;
+	WHERE id = ? AND username = ?;
+`
+
+const DeleteSpendingByIDQuery string = `
+DELETE FROM budget
+	WHERE id = ? AND username = ?;
 `
