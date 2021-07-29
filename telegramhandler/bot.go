@@ -27,6 +27,7 @@ func displayHelp(username string, channelId int64, bot *tgbotapi.BotAPI) {
 	helpMsg += "**ostot** kk-vvvv kk-vvvv (mistä mihin)\n\n"
 	helpMsg += "**palkka** kk-vvvv xxxx.xx (nettona)\r\n"
 	helpMsg += "**palkat** kk-vvvv\r\n"
+	helpMsg += "**poista** osto ID\r\n"
 	helpMsg += "**velat** tai **velkaa** kk-vvvv\n\n"
 	outMsg := tgbotapi.NewMessage(channelId, helpMsg)
 	if _, err := bot.Send(outMsg); err != nil {
@@ -257,6 +258,49 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 			}
 			outMsg := tgbotapi.NewMessage(channelId, strings.Join(finalMsg, "\n"))
 			if SendTelegram(bot, outMsg, "palkat3", false) == false {
+				continue
+			}
+		case "poista":
+			if len(tokenized) < 3 {
+				displayHelp(username, channelId, bot)
+				continue
+			}
+
+			switch tokenized[1] {
+			case "osto":
+				bid, err := strconv.ParseInt(tokenized[2], 10, 64)
+				if err != nil {
+					outMsg := tgbotapi.NewMessage(channelId, "Oston ID parsinta epäonnistui")
+					if !SendTelegram(bot, outMsg, "poista1", false) {
+						continue
+					}
+				}
+
+				row, err := dbengine.GetSpendingRowByID(bid, username)
+				if err != nil {
+					errMsg := fmt.Sprintf("Oston hakeminen ID:n (%d) perusteella epäonnistui", bid)
+					outMsg := tgbotapi.NewMessage(channelId, errMsg)
+					if !SendTelegram(bot, outMsg, "poista2", false) {
+						continue
+					}
+				}
+
+				err = dbengine.DeleteSpendingByID(bid, username)
+				if err != nil {
+					errMsg := fmt.Sprintf("Oston ID (%d) poisto epäonnistui", bid)
+					outMsg := tgbotapi.NewMessage(channelId, errMsg)
+					if !SendTelegram(bot, outMsg, "poista3", false) {
+						continue
+					}
+				}
+				deletedEntry := fmt.Sprintf("Poistettu tapahtuma (%d) %s [%s]",
+					row.ID, row.Shopname, row.Purchasedate)
+				outMsg := tgbotapi.NewMessage(channelId, deletedEntry)
+				if !SendTelegram(bot, outMsg, "poista4", false) {
+					continue
+				}
+			default:
+				displayHelp(username, channelId, bot)
 				continue
 			}
 		case "velat", "velkaa":
