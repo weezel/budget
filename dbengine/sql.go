@@ -82,6 +82,14 @@ SELECT id, purchasedate, shopname, price FROM budget
 	ORDER BY purchasedate, shopname, price;
 `
 
+const DateRangeSpendingQuery string = `
+SELECT b.username, b.purchasedate, sum(price) AS expanses, s.salary FROM budget as b
+        LEFT JOIN salary AS s ON b.username = s.username AND s.recordtime = b.purchasedate
+	WHERE purchasedate BETWEEN ? AND ?
+	GROUP BY b.username, b.purchasedate
+	ORDER BY b.username, b.purchasedate, expanses;
+`
+
 const GetSpendingByIDQuery string = `
 SELECT * FROM budget
 	WHERE id = ? AND username = ?;

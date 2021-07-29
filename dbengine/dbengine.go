@@ -206,7 +206,7 @@ func GetSalaryCompensatedDebts(month time.Time) ([]DebtData, error) {
 	if err != nil {
 		return []DebtData{}, err
 	}
-	// Descending order regarding the salary
+	// Descending order regarding to salary
 	sort.Slice(debts, func(i, j int) bool {
 		return debts[i].Salary < debts[j].Salary
 	})
@@ -246,6 +246,7 @@ func GetSalaryCompensatedDebts(month time.Time) ([]DebtData, error) {
 	return debts, nil
 }
 
+// Yes, I recognize the functionality is a bit fugly but will fix it later.
 func GetMonthlyPurchasesByUser(username string, startMonth time.Time, endMonth time.Time) (
 	map[time.Time][]external.SpendingHistory,
 	error,
@@ -298,6 +299,62 @@ func GetMonthlyPurchasesByUser(username string, startMonth time.Time, endMonth t
 			spending[s.MonthYear] = append(spending[s.MonthYear], s)
 		}
 	}
+	return spending, nil
+}
+
+func GetMonthlyData(startMonth time.Time, endMonth time.Time) (
+	map[time.Time][]external.SpendingHistory,
+	error,
+) {
+	spending := make(map[time.Time][]external.SpendingHistory)
+
+	stmt, err := dbConn.Prepare(DateRangeSpendingQuery)
+	if err != nil {
+		errMsg := fmt.Sprintf(
+			"ERROR: Failed to prepare purchases by user query: %v",
+			err)
+		return map[time.Time][]external.SpendingHistory{}, errors.New(errMsg)
+	}
+	defer func() {
+		err := stmt.Close() // FIXME
+		if err != nil {
+			log.Printf("couldn't close purchases by user statement: %s", err)
+		}
+	}()
+
+	res, err := stmt.Query(
+		startMonth.Format("01-2006"),
+		endMonth.Format("01-2006"))
+	if err != nil {
+		errMsg := fmt.Sprintf(
+			"ERROR: Couldn't get monthly data: %v",
+			err)
+		return map[time.Time][]external.SpendingHistory{}, errors.New(errMsg)
+	}
+	defer func() {
+		if err := res.Close(); err != nil {
+			log.Errorf("couldn't close file handle: %s", err)
+		}
+	}()
+
+	for res.Next() {
+		s := external.SpendingHistory{}
+		var tmpDate string
+
+		if err := res.Scan(&s.Username, &tmpDate, &s.Spending, &s.Salary); err != nil {
+			log.Errorf("couldn't parse purchases by user: %s", err)
+			continue
+		}
+		parsedDate, err := time.Parse("01-2006", tmpDate)
+		if err != nil {
+			log.Errorf("couldn't parse month-year: %v", err)
+			continue
+		}
+		s.MonthYear = parsedDate
+
+		spending[s.MonthYear] = append(spending[s.MonthYear], s)
+	}
+
 	return spending, nil
 }
 
