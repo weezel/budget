@@ -44,7 +44,7 @@ func cleaner() {
 }
 
 func InitScheduler() {
-	shortLivedPages = make(map[string]ShortLivedPage, 0)
+	shortLivedPages = make(map[string]ShortLivedPage)
 
 	cleanerSchedule, err := scheduler.NewScheduler(1000)
 	if err != nil {

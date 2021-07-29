@@ -159,9 +159,10 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 				Spendings: spending,
 			}
 
-			htmlPage, err := outputs.HTML(spendings)
+			htmlPage, err := outputs.HTML(spendings, outputs.MontlySpendingsTemplate)
 			if err != nil {
 				log.Printf("Couldn't generate HTML results: %s", err)
+				continue
 			}
 
 			htmlPageHash := utils.CalcSha256Sum(htmlPage)
