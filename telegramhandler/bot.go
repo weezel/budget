@@ -284,6 +284,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 					if !SendTelegram(bot, outMsg, "poista2", false) {
 						continue
 					}
+					continue
 				}
 
 				err = dbengine.DeleteSpendingByID(bid, username)
@@ -293,6 +294,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 					if !SendTelegram(bot, outMsg, "poista3", false) {
 						continue
 					}
+					continue
 				}
 				deletedEntry := fmt.Sprintf("Poistettu tapahtuma (%d) %s [%s]",
 					row.ID, row.Shopname, row.Purchasedate)
