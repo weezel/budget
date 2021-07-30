@@ -296,8 +296,8 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 					}
 					continue
 				}
-				deletedEntry := fmt.Sprintf("Poistettu tapahtuma (%d) %s [%s]",
-					row.ID, row.Shopname, row.Purchasedate)
+				deletedEntry := fmt.Sprintf("Poistettu tapahtuma (ID %d) %s %.2f€ [%s]",
+					row.ID, row.Shopname, row.Price, row.Purchasedate)
 				outMsg := tgbotapi.NewMessage(channelId, deletedEntry)
 				if !SendTelegram(bot, outMsg, "poista4", false) {
 					continue
