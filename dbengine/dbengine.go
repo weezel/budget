@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"reflect"
 	"sort"
 	"time"
 	"weezel/budget/external"
@@ -124,7 +125,7 @@ func InsertSalary(username string, salary float64, recordTime time.Time) bool {
 		sql.Named("recordtime", recordTime.Format("01-2006")),
 	)
 	if err != nil {
-		log.Errorf("failed to insert salary data: %s", err)
+		log.Printf("ERROR: failed to insert salary data: %s", err)
 		return false
 	}
 	rowsAffected, err := res.RowsAffected()
@@ -286,7 +287,7 @@ func GetMonthlyPurchasesByUser(username string, startMonth time.Time, endMonth t
 			var tmpDate string
 
 			if err := res.Scan(&s.ID, &tmpDate, &s.EventName, &s.Spending); err != nil {
-				log.Errorf("couldn't parse purchases by user: %s", err)
+				log.Printf("ERROR: couldn't parse purchases by user: %s", err)
 				continue
 			}
 			parsedDate, err := time.Parse("01-2006", tmpDate)
@@ -333,7 +334,7 @@ func GetMonthlyData(startMonth time.Time, endMonth time.Time) (
 	}
 	defer func() {
 		if err := res.Close(); err != nil {
-			log.Errorf("couldn't close file handle: %s", err)
+			log.Printf("ERROR: couldn't close file handle: %s", err)
 		}
 	}()
 
@@ -342,12 +343,12 @@ func GetMonthlyData(startMonth time.Time, endMonth time.Time) (
 		var tmpDate string
 
 		if err := res.Scan(&s.Username, &tmpDate, &s.Spending, &s.Salary); err != nil {
-			log.Errorf("couldn't parse purchases by user: %s", err)
+			log.Printf("ERROR: couldn't parse purchases by user: %s", err)
 			continue
 		}
 		parsedDate, err := time.Parse("01-2006", tmpDate)
 		if err != nil {
-			log.Errorf("couldn't parse month-year: %v", err)
+			log.Printf("ERROR: couldn't parse month-year: %v", err)
 			continue
 		}
 		s.MonthYear = parsedDate
