@@ -23,7 +23,7 @@ type ShortLivedPage struct {
 func cleaner() {
 	var removableHashes []string = []string{}
 
-	log.Printf("Starting scheduled cleaning for short lived pages")
+	// TODO log.Printf("Starting scheduled cleaning for short lived pages")
 	for pageHash, page := range shortLivedPages {
 		endTime := page.StartTime.Add(
 			time.Duration(
@@ -40,7 +40,7 @@ func cleaner() {
 		delete(shortLivedPages, pageHash)
 		lock.Unlock()
 	}
-	log.Printf("Stopping scheduled cleaning for short lived pages")
+	// TODO log.Printf("Stopping scheduled cleaning for short lived pages")
 }
 
 func InitScheduler() {
