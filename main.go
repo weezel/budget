@@ -1,15 +1,19 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"path"
 	"path/filepath"
 	"strings"
+	"syscall"
+	"time"
 	"weezel/budget/confighandler"
 	"weezel/budget/dbengine"
 	"weezel/budget/shortlivedpage"
@@ -116,12 +120,24 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", web.ApiHandler)
-	log.Printf("Listening on port %q\n", conf.WebserverConfig.HttpPort)
-	err = http.ListenAndServe(conf.WebserverConfig.HttpPort, mux)
-	if err != nil {
-		log.Fatalf("Cannot listen on port %q: %q",
-			conf.WebserverConfig.HttpPort,
-			err)
+	httpServ := &http.Server{
+		Addr:    conf.WebserverConfig.HttpPort,
+		Handler: mux,
 	}
+
+	go func() {
+		log.Fatal(httpServ.ListenAndServe())
+	}()
+	log.Printf("Listening on port %q\n", conf.WebserverConfig.HttpPort)
+
+	// Graceful shutdown for HTTP server
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	<-done
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	log.Println("HTTP server stopping")
+	defer cancel()
+	log.Fatal(httpServ.Shutdown(ctx))
 
 }
