@@ -158,10 +158,9 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 				To:        endMonth,
 				Spendings: spending,
 			}
-
 			htmlPage, err := outputs.HTML(spendings, outputs.MontlySpendingsTemplate)
 			if err != nil {
-				log.Printf("Couldn't generate HTML results: %s", err)
+				log.Printf("Couldn't generate HTML results for spendings: %s", err)
 				continue
 			}
 
@@ -175,18 +174,84 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 			if addOk {
 				endTime := shortlivedPage.StartTime.Add(
 					time.Duration(shortlivedPage.TimeToLiveSeconds))
-				log.Printf("Added shortlived page %s with end time %s",
+				log.Printf("Added shortlived spendings page %s with end time %s",
 					htmlPageHash, endTime)
 			}
 
-			urlBase := fmt.Sprintf("Kulutustiedot saatavilla 10min ajan täällä: http://%s/spendings?page_hash=%s",
+			urlBase := fmt.Sprintf("Kulutustiedot saatavilla 10min ajan täällä: https://%s/spendings?page_hash=%s",
 				hostname,
 				htmlPageHash)
 			outMsg := tgbotapi.NewMessage(channelId, urlBase)
 			if SendTelegram(bot, outMsg, "ostot2", false) == false {
 				continue
 			}
+			continue
+		case "tilastot":
+			if len(tokenized) < 3 {
+				displayHelp(username, channelId, bot)
+				continue
+			}
 
+			startMonth, err := time.Parse("01-2006", tokenized[1])
+			if err != nil {
+				helpMsg := "Virhe päivämäärän parsinnassa. Oltava muotoa kk-vvvv"
+				outMsg := tgbotapi.NewMessage(channelId, helpMsg)
+				if !SendTelegram(bot, outMsg, "tilastot-startmonth", false) {
+					continue
+				}
+			}
+
+			endMonth, err := time.Parse("01-2006", tokenized[2])
+			if err != nil {
+				helpMsg := "Virhe päivämäärän parsinnassa. Oltava muotoa kk-vvvv"
+				outMsg := tgbotapi.NewMessage(channelId, helpMsg)
+				if !SendTelegram(bot, outMsg, "tilastot-endmonth", false) {
+					continue
+				}
+			}
+
+			monthlyStats, err := dbengine.GetMonthlyData(startMonth, endMonth)
+			if err != nil {
+				log.Println(err)
+				outMsg := tgbotapi.NewMessage(
+					channelId,
+					"Tilastojen hakemisessa ongelmaa")
+				_ = SendTelegram(bot, outMsg, "monthlyStats", false)
+				continue
+			}
+
+			var spendings external.SpendingHTMLOutput = external.SpendingHTMLOutput{
+				From:      startMonth,
+				To:        endMonth,
+				Spendings: monthlyStats,
+			}
+			htmlPage, err := outputs.HTML(spendings, outputs.MonthlyDataTemplate)
+			if err != nil {
+				log.Printf("Couldn't generate HTML results for statistics: %s", err)
+				continue
+			}
+
+			htmlPageHash := utils.CalcSha256Sum(htmlPage)
+			shortlivedPage := shortlivedpage.ShortLivedPage{
+				TimeToLiveSeconds: 600,
+				StartTime:         time.Now(),
+				HtmlPage:          &htmlPage,
+			}
+			addOk := shortlivedpage.Add(htmlPageHash, shortlivedPage)
+			if addOk {
+				endTime := shortlivedPage.StartTime.Add(
+					time.Duration(shortlivedPage.TimeToLiveSeconds))
+				log.Printf("Added shortlived data page %s with end time %s",
+					htmlPageHash, endTime)
+			}
+
+			urlBase := fmt.Sprintf("Tilastot saatavilla 10min ajan täällä: https://%s/statistics?page_hash=%s",
+				hostname,
+				htmlPageHash)
+			outMsg := tgbotapi.NewMessage(channelId, urlBase)
+			if !SendTelegram(bot, outMsg, "tilastot2", false) {
+				continue
+			}
 			continue
 		case "palkka":
 			if len(tokenized) < 3 {
