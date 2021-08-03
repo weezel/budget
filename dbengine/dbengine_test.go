@@ -522,7 +522,6 @@ func TestGetMonthlyPurchasesByUser(t *testing.T) {
 }
 
 func TestGetMonthlyData(t *testing.T) {
-	t.Skip("Under construction")
 	memDb, _ := sql.Open("sqlite3", ":memory:")
 	defer memDb.Close()
 
@@ -547,10 +546,22 @@ func TestGetMonthlyData(t *testing.T) {
 	('alice', 'lidl',   '', '07-2020',   2.0),
 	('alice', 'lidl',   '', '07-2020',   4.0),
 	('tom',   'ikea',   '', '07-2020',  16.0),
-	('alice', 'amazon', '', '08-2020', 128.0),
-	('alice', 'amazon', '', '08-2020',  32.0),
-	('tom',   'siwa',   '', '08-2021', 256.0),
-	('tom',   'siwa',   '', '08-2021', 512.0) ;`)
+	('tom',   'siwa',   '', '08-2020', 256.0),
+	('tom',   'siwa',   '', '08-2020', 512.0);`)
+	if err != nil {
+		t.Fatalf("Unexpected error in SQL INSERT: %v", err)
+	}
+
+	_, err = memDb.Exec(`
+	INSERT INTO salary (username, salary, recordtime) VALUES
+	('alice', 2001.0, '01-2020'),
+	('alice', 2002.0, '02-2020'),
+	('alice', 2003.0, '03-2020'),
+	('tom',   1601.0, '01-2020'),
+	('tom',   1602.0, '02-2020'),
+	('tom',   1603.0, '03-2020'),
+	('tom',   1606.0, '06-2020'),
+	('tom',   1608.0, '08-2020');`)
 	if err != nil {
 		t.Fatalf("Unexpected error in SQL INSERT: %v", err)
 	}
@@ -566,19 +577,95 @@ func TestGetMonthlyData(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "",
+			name: "One month data",
 			args: args{
 				startMonth: time.Date(2020, 6, 1, 0, 0, 0, 0, time.UTC),
-				endMonth:   time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
+				endMonth:   time.Date(2020, 6, 1, 0, 0, 0, 0, time.UTC),
 			},
 			want: map[time.Time][]external.SpendingHistory{
-				time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC): {
+				time.Date(2020, 6, 1, 0, 0, 0, 0, time.UTC): {
 					external.SpendingHistory{
 						ID:        0,
-						Username:  "Heman",
-						MonthYear: time.Time{},
-						Spending:  0,
-						Salary:    0,
+						Username:  "tom",
+						MonthYear: time.Date(2020, 6, 1, 0, 0, 0, 0, time.UTC),
+						Spending:  8.0,
+						Salary:    1606.0,
+						EventName: "",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Three months data",
+			args: args{
+				startMonth: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+				endMonth:   time.Date(2020, 3, 1, 0, 0, 0, 0, time.UTC),
+			},
+			want: map[time.Time][]external.SpendingHistory{
+				time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC): {
+					external.SpendingHistory{
+						ID:        0,
+						Username:  "alice",
+						MonthYear: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+						Spending:  14.0,
+						Salary:    2001,
+						EventName: "",
+					},
+					external.SpendingHistory{
+						ID:        0,
+						Username:  "tom",
+						MonthYear: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+						Spending:  10,
+						Salary:    1601.0,
+						EventName: "",
+					},
+				},
+				time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC): {
+					external.SpendingHistory{
+						Username:  "alice",
+						MonthYear: time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
+						Spending:  9,
+						Salary:    2002.0,
+					},
+					external.SpendingHistory{
+						Username:  "tom",
+						MonthYear: time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
+						Spending:  15.4,
+						Salary:    1602.0,
+					},
+				},
+				time.Date(2020, 3, 1, 0, 0, 0, 0, time.UTC): {
+					external.SpendingHistory{
+						Username:  "alice",
+						MonthYear: time.Date(2020, 3, 1, 0, 0, 0, 0, time.UTC),
+						Spending:  33.46,
+						Salary:    2003.0,
+					},
+					external.SpendingHistory{
+						Username:  "tom",
+						MonthYear: time.Date(2020, 3, 1, 0, 0, 0, 0, time.UTC),
+						Spending:  4.4,
+						Salary:    1603.0,
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Only other has purchases",
+			args: args{
+				startMonth: time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC),
+				endMonth:   time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC),
+			},
+			want: map[time.Time][]external.SpendingHistory{
+				time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC): {
+					external.SpendingHistory{
+						ID:        0,
+						Username:  "tom",
+						MonthYear: time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC),
+						Spending:  768.0,
+						Salary:    1608.0,
 						EventName: "",
 					},
 				},
@@ -593,8 +680,10 @@ func TestGetMonthlyData(t *testing.T) {
 				t.Errorf("GetMonthlyData() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GetMonthlyData() = %v, want %v", got, tt.want)
+
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("%s: GetMonthlyData() differs:\n%s",
+					tt.name, diff)
 			}
 		})
 	}
