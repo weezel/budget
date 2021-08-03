@@ -28,6 +28,7 @@ func displayHelp(username string, channelId int64, bot *tgbotapi.BotAPI) {
 	helpMsg += "**palkka** kk-vvvv xxxx.xx (nettona)\r\n"
 	helpMsg += "**palkat** kk-vvvv\r\n"
 	helpMsg += "**poista** osto ID\r\n"
+	helpMsg += "**tilastot** kk-vvvv kk-vvvv\r\n"
 	helpMsg += "**velat** tai **velkaa** kk-vvvv\n\n"
 	outMsg := tgbotapi.NewMessage(channelId, helpMsg)
 	if _, err := bot.Send(outMsg); err != nil {
