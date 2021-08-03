@@ -319,7 +319,7 @@ func GetMonthlyData(startMonth time.Time, endMonth time.Time) (
 	defer func() {
 		err := stmt.Close() // FIXME
 		if err != nil {
-			log.Printf("couldn't close purchases by user statement: %s", err)
+			log.Printf("couldn't close data gathering by user statement: %s", err)
 		}
 	}()
 
@@ -341,17 +341,32 @@ func GetMonthlyData(startMonth time.Time, endMonth time.Time) (
 	for res.Next() {
 		s := external.SpendingHistory{}
 		var tmpDate string
+		var spendingTmp sql.NullFloat64
+		var salaryTmp sql.NullFloat64
 
-		if err := res.Scan(&s.Username, &tmpDate, &s.Spending, &s.Salary); err != nil {
+		if err := res.Scan(&s.Username, &tmpDate, &spendingTmp, &salaryTmp); err != nil {
 			log.Printf("ERROR: couldn't parse purchases by user: %s", err)
 			continue
 		}
+
 		parsedDate, err := time.Parse("01-2006", tmpDate)
 		if err != nil {
 			log.Printf("ERROR: couldn't parse month-year: %v", err)
 			continue
 		}
 		s.MonthYear = parsedDate
+
+		if spendingTmp.Valid {
+			s.Spending = spendingTmp.Float64
+		} else {
+			s.Spending = math.NaN()
+		}
+
+		if salaryTmp.Valid {
+			s.Salary = salaryTmp.Float64
+		} else {
+			s.Salary = math.NaN()
+		}
 
 		spending[s.MonthYear] = append(spending[s.MonthYear], s)
 	}
