@@ -3,7 +3,7 @@
 package protector
 
 import (
-	"log"
+	"weezel/budget/logger"
 
 	"golang.org/x/sys/unix"
 )
@@ -18,15 +18,15 @@ func Protect(writeOutDirPath string) {
 	}
 	for _, fname := range mustInclude {
 		if err := unix.Unveil(fname, "r"); err != nil {
-			log.Panicf("Error unveiling: %s", err)
+			logger.Panicf("Error unveiling: %s", err)
 		}
 	}
 	if err := unix.Unveil(writeOutDirPath, "w"); err != nil {
-		log.Panicf("Error unveiling: %s", err)
+		logger.Panicf("Error unveiling: %s", err)
 	}
 	unix.UnveilBlock()
 	err := unix.PledgePromises("stdio cpath rpath wpath tty inet dns")
 	if err != nil {
-		log.Panicf("Error in pledge: %s", err)
+		logger.Panicf("Error in pledge: %s", err)
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"log"
 	"sync"
 	"time"
+	"weezel/budget/logger"
 
 	"github.com/prprprus/scheduler"
 )
@@ -23,13 +24,13 @@ type ShortLivedPage struct {
 func cleaner() {
 	var removableHashes []string = []string{}
 
-	// TODO log.Printf("Starting scheduled cleaning for short lived pages")
+	logger.Debugf("Starting scheduled cleaning for short lived pages")
 	for pageHash, page := range shortLivedPages {
 		endTime := page.StartTime.Add(
 			time.Duration(
 				int64(time.Second) * page.TimeToLiveSeconds))
 		if time.Now().After(endTime) {
-			log.Printf("Removing page due timeout: %v [%s]",
+			logger.Infof("Removing page due timeout: %v [%s]",
 				page,
 				endTime)
 			removableHashes = append(removableHashes, pageHash)
@@ -40,7 +41,7 @@ func cleaner() {
 		delete(shortLivedPages, pageHash)
 		lock.Unlock()
 	}
-	// TODO log.Printf("Stopping scheduled cleaning for short lived pages")
+	logger.Debugf("Stopping scheduled cleaning for short lived pages")
 }
 
 func InitScheduler() {
@@ -48,9 +49,9 @@ func InitScheduler() {
 
 	cleanerSchedule, err := scheduler.NewScheduler(1000)
 	if err != nil {
-		log.Fatalf("ERROR while initializing scheduler: %s", err)
+		log.Fatalf("Error while initializing scheduler: %s", err)
 	}
-	log.Printf("Cleaner scheduler started")
+	logger.Infof("Cleaner scheduler started")
 	cleanerSchedule.Every().Second(0).Do(cleaner)
 }
 

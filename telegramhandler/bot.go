@@ -2,7 +2,6 @@ package telegramhandler
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -10,6 +9,7 @@ import (
 	"time"
 	"weezel/budget/dbengine"
 	"weezel/budget/external"
+	"weezel/budget/logger"
 	"weezel/budget/outputs"
 	"weezel/budget/shortlivedpage"
 	"weezel/budget/utils"
@@ -20,7 +20,7 @@ import (
 var splitPath = regexp.MustCompile(`\s+`)
 
 func displayHelp(username string, channelId int64, bot *tgbotapi.BotAPI) {
-	log.Printf("Help requested by %s", username)
+	logger.Infof("Help requested by %s", username)
 	helpMsg := "Tunnistan seuraavat komennot:\n\n"
 	helpMsg += "kulutus\n\n"
 	helpMsg += "**osto** paikka [vapaaehtoinen pvm muodossa kk-vvvv] xx.xx\n\n"
@@ -32,7 +32,7 @@ func displayHelp(username string, channelId int64, bot *tgbotapi.BotAPI) {
 	helpMsg += "**velat** tai **velkaa** kk-vvvv\n\n"
 	outMsg := tgbotapi.NewMessage(channelId, helpMsg)
 	if _, err := bot.Send(outMsg); err != nil {
-		log.Printf("ERROR: sending to channel failed: %s", err)
+		logger.Errorf("sending to channel failed: %s", err)
 	}
 }
 
@@ -46,7 +46,7 @@ func SendTelegram(
 		msg.ParseMode = tgbotapi.ModeMarkdown
 	}
 	if _, err := bot.Send(msg); err != nil {
-		log.Printf("ERROR: %s: sending to channel failed %s", sectionName, err)
+		logger.Errorf("%s: sending to channel failed %s", sectionName, err)
 		return false
 	}
 	return true
@@ -75,7 +75,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 			",",
 			".",
 			-1)
-		log.Printf("Tokenized: %v", tokenized)
+		logger.Infof("Tokenized: %v", tokenized)
 		command = strings.ToLower(tokenized[0])
 
 		switch command {
@@ -90,7 +90,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 			purchaseDate := utils.GetDate(tokenized, "01-2006")
 			price, err = strconv.ParseFloat(lastElem, 64)
 			if err != nil {
-				log.Printf("ERROR: price wasn't the last item: %v", tokenized)
+				logger.Errorf("price wasn't the last item: %v", tokenized)
 				helpMsg := "Virhe, hinta täytyy olla komennon viimeinen elementti"
 				outMsg := tgbotapi.NewMessage(channelId, helpMsg)
 				if !SendTelegram(bot, outMsg, "osto1", false) {
@@ -101,13 +101,13 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 
 			err = dbengine.InsertShopping(username, shopName, category, purchaseDate, price)
 			if err != nil {
-				log.Println(err)
+				logger.Error(err)
 				outMsg := tgbotapi.NewMessage(channelId, err.Error())
 				_ = SendTelegram(bot, outMsg, "osto2", false)
 				continue
 			}
 
-			log.Printf("Purchased from %s [%s] with price %.2f by %s on %s",
+			logger.Infof("Purchased from %s [%s] with price %.2f by %s on %s",
 				shopName,
 				category,
 				price,
@@ -146,7 +146,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 			spending, err := dbengine.GetMonthlyPurchasesByUser(
 				username, startMonth, endMonth)
 			if err != nil {
-				log.Println(err)
+				logger.Error(err)
 				outMsg := tgbotapi.NewMessage(
 					channelId,
 					"Kulutuksen hakemisessa ongelmaa")
@@ -161,7 +161,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 			}
 			htmlPage, err := outputs.HTML(spendings, outputs.MontlySpendingsTemplate)
 			if err != nil {
-				log.Printf("Couldn't generate HTML results for spendings: %s", err)
+				logger.Errorf("Couldn't generate HTML results for spendings: %s", err)
 				continue
 			}
 
@@ -175,7 +175,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 			if addOk {
 				endTime := shortlivedPage.StartTime.Add(
 					time.Duration(shortlivedPage.TimeToLiveSeconds))
-				log.Printf("Added shortlived spendings page %s with end time %s",
+				logger.Infof("Added shortlived spendings page %s with end time %s",
 					htmlPageHash, endTime)
 			}
 
@@ -213,7 +213,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 
 			monthlyStats, err := dbengine.GetMonthlyData(startMonth, endMonth)
 			if err != nil {
-				log.Println(err)
+				logger.Error(err)
 				outMsg := tgbotapi.NewMessage(
 					channelId,
 					"Tilastojen hakemisessa ongelmaa")
@@ -228,7 +228,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 			}
 			htmlPage, err := outputs.HTML(spendings, outputs.MonthlyDataTemplate)
 			if err != nil {
-				log.Printf("Couldn't generate HTML results for statistics: %s", err)
+				logger.Infof("Couldn't generate HTML results for statistics: %s", err)
 				continue
 			}
 
@@ -242,7 +242,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 			if addOk {
 				endTime := shortlivedPage.StartTime.Add(
 					time.Duration(shortlivedPage.TimeToLiveSeconds))
-				log.Printf("Added shortlived data page %s with end time %s",
+				logger.Infof("Added shortlived data page %s with end time %s",
 					htmlPageHash, endTime)
 			}
 
@@ -263,7 +263,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 			salaryDate := utils.GetDate(tokenized, "01-2006")
 			salary, err := strconv.ParseFloat(lastElem, 64)
 			if err != nil {
-				log.Printf("ERROR: couldn't parse salary: %v", err)
+				logger.Errorf("couldn't parse salary: %v", err)
 				helpMsg := "Virhe palkan parsinnassa. Palkan oltava viimeisenä ja muodossa x.xx tai x,xx"
 				outMsg := tgbotapi.NewMessage(channelId, helpMsg)
 				if !SendTelegram(bot, outMsg, "palkka1", false) {
@@ -274,7 +274,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 
 			dbengine.InsertSalary(username, salary, salaryDate)
 
-			log.Printf("Salary amount of %.2f by %s on %s",
+			logger.Infof("Salary amount of %.2f by %s on %s",
 				salary,
 				username,
 				salaryDate.Format("01-2006"))
@@ -286,7 +286,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 		case "palkat":
 			forMonth := utils.GetDate(tokenized, "01-2006")
 			if reflect.DeepEqual(forMonth, time.Time{}) {
-				log.Printf("ERROR: couldn't parse date for salaries: %v", err)
+				logger.Errorf("couldn't parse date for salaries: %v", err)
 				helpMsg := "Virhe päivämäärän parsinnassa. Oltava muotoa kk-vvvv"
 				outMsg := tgbotapi.NewMessage(channelId, helpMsg)
 				if !SendTelegram(bot, outMsg, "palkat1", false) {
@@ -301,7 +301,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 				forMonth,
 			)
 			if err != nil {
-				log.Print(err)
+				logger.Error(err)
 				helpMsg := "Voi ei, ei saatu palkkatietoja."
 				outMsg := tgbotapi.NewMessage(channelId, helpMsg)
 				if !SendTelegram(bot, outMsg, "palkat2", false) {
@@ -375,7 +375,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 		case "velat", "velkaa":
 			forMonth := utils.GetDate(tokenized, "01-2006")
 			if reflect.DeepEqual(forMonth, time.Time{}) {
-				log.Printf("ERROR: couldn't parse date for debts: %v", err)
+				logger.Errorf("couldn't parse date for debts: %v", err)
 				helpMsg := "Virhe päivämäärän parsinnassa. Oltava muotoa kk-vvvv"
 				outMsg := tgbotapi.NewMessage(channelId, helpMsg)
 				if !SendTelegram(bot, outMsg, "velat1", false) {
@@ -386,7 +386,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 
 			debts, err := dbengine.GetSalaryCompensatedDebts(forMonth)
 			if err != nil {
-				log.Print(err)
+				logger.Error(err)
 				helpMsg := fmt.Sprintf("Voi ei, ei saatu velkatietoja: %s", err)
 				outMsg := tgbotapi.NewMessage(channelId, helpMsg)
 				if !SendTelegram(bot, outMsg, "velat2", false) {

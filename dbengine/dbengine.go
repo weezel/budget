@@ -4,12 +4,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"math"
 	"reflect"
 	"sort"
 	"time"
 	"weezel/budget/external"
+	"weezel/budget/logger"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -38,7 +38,7 @@ func (d *DebtData) PrettyPrint() string {
 func CreateSchema(db *sql.DB) {
 	_, err := db.Exec(DbCreationSchema)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 }
 
@@ -106,7 +106,7 @@ func DeleteSpendingByID(bid int64, username string) error {
 		return err
 	}
 	if rowsAffected > 0 {
-		log.Printf("Deleted the following row from budget table: %#v", deletableRow)
+		logger.Infof("Deleted the following row from budget table: %#v", deletableRow)
 	}
 
 	return nil
@@ -115,7 +115,7 @@ func DeleteSpendingByID(bid int64, username string) error {
 func InsertSalary(username string, salary float64, recordTime time.Time) bool {
 	stmt, err := dbConn.Prepare(InsertSalaryQuery)
 	if err != nil {
-		log.Printf("ERROR: preparing salary insert statement failed: %v", err)
+		logger.Errorf("preparing salary insert statement failed: %v", err)
 		return false
 	}
 
@@ -125,22 +125,22 @@ func InsertSalary(username string, salary float64, recordTime time.Time) bool {
 		sql.Named("recordtime", recordTime.Format("01-2006")),
 	)
 	if err != nil {
-		log.Printf("ERROR: failed to insert salary data: %s", err)
+		logger.Errorf("failed to insert salary data: %s", err)
 		return false
 	}
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
-		log.Printf("ERROR: getting salary rows failed: %v", err)
+		logger.Errorf("getting salary rows failed: %v", err)
 		return false
 	}
-	log.Printf("Wrote %d salary rows", rowsAffected)
+	logger.Infof("Wrote %d salary rows", rowsAffected)
 	return true
 }
 
 func InsertShopping(username, shopName, category string, purchaseDate time.Time, price float64) error {
 	stmt, err := dbConn.Prepare(InsertShoppingQuery)
 	if err != nil {
-		log.Printf("ERROR: preparing shopping insert statement failed: %v", err)
+		logger.Errorf("preparing shopping insert statement failed: %v", err)
 		return errors.New("Virhe, ei onnistuttu yhdistämään kantaan")
 	}
 
@@ -156,10 +156,10 @@ func InsertShopping(username, shopName, category string, purchaseDate time.Time,
 	}
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
-		log.Printf("ERROR: getting shopping rows failed: %v", err)
+		logger.Errorf("getting shopping rows failed: %v", err)
 		return errors.New("Virhe, ei saatu ostosdataa")
 	}
-	log.Printf("Wrote %d shopping rows", rowsAffected)
+	logger.Infof("Wrote %d shopping rows", rowsAffected)
 	return nil
 }
 
@@ -180,7 +180,7 @@ func GetSalaryCompensatedDebts(month time.Time) ([]DebtData, error) {
 	}
 	defer func() {
 		if err := res.Close(); err != nil {
-			log.Printf("ERROR: couldn't close file handle in GetSalaryCompensatedDebts: %s", err)
+			logger.Errorf("couldn't close file handle in GetSalaryCompensatedDebts: %s", err)
 		}
 	}()
 
@@ -225,15 +225,15 @@ func GetSalaryCompensatedDebts(month time.Time) ([]DebtData, error) {
 
 	debt := math.Abs(greaterIncomeOwes - lowerIncomeOwes)
 
-	log.Printf("Sum of salaries: %.2f", sumSalaries)
-	log.Printf("Lower income ration: %.2f", lowerIncomeRatio)
-	log.Printf("Lower income owes: %.2f", lowerIncomeOwes)
-	log.Printf("Greater income ration: %.2f", greaterIncomeRatio)
-	log.Printf("Greater income owes: %.2f", greaterIncomeOwes)
-	log.Printf("Expanses ratio by lower income: %.2f", expRatioByLowerInc)
-	log.Printf("Expanses ratio by greater income: %.2f", expRatioByGreaterInc)
-	log.Printf("Total expanses: %.2f", totalExpanses)
-	log.Printf("Debt in the end: %.2f", debt)
+	logger.Debugf("Sum of salaries: %.2f", sumSalaries)
+	logger.Debugf("Lower income ration: %.2f", lowerIncomeRatio)
+	logger.Debugf("Lower income owes: %.2f", lowerIncomeOwes)
+	logger.Debugf("Greater income ration: %.2f", greaterIncomeRatio)
+	logger.Debugf("Greater income owes: %.2f", greaterIncomeOwes)
+	logger.Debugf("Expanses ratio by lower income: %.2f", expRatioByLowerInc)
+	logger.Debugf("Expanses ratio by greater income: %.2f", expRatioByGreaterInc)
+	logger.Debugf("Total expanses: %.2f", totalExpanses)
+	logger.Debugf("Debt in the end: %.2f", debt)
 
 	if expRatioByLowerInc < expRatioByGreaterInc {
 		debts[0].Owes = debt
@@ -242,7 +242,7 @@ func GetSalaryCompensatedDebts(month time.Time) ([]DebtData, error) {
 		debts[0].Owes = 0.0
 		debts[1].Owes = debt
 	}
-	log.Printf("Debts fetched: %+v", debts)
+	logger.Infof("Debts fetched: %#v", debts)
 
 	return debts, nil
 }
@@ -264,7 +264,7 @@ func GetMonthlyPurchasesByUser(username string, startMonth time.Time, endMonth t
 	defer func() {
 		err := stmt.Close() // FIXME
 		if err != nil {
-			log.Printf("ERROR: couldn't close purchases by user statement: %s", err)
+			logger.Errorf("couldn't close purchases by user statement: %s", err)
 		}
 	}()
 
@@ -278,7 +278,7 @@ func GetMonthlyPurchasesByUser(username string, startMonth time.Time, endMonth t
 		}
 		defer func() {
 			if err := res.Close(); err != nil {
-				log.Printf("ERROR: couldn't close file handle in GetMonthlyPurchasesByUser: %s", err)
+				logger.Errorf("couldn't close file handle in GetMonthlyPurchasesByUser: %s", err)
 			}
 		}()
 
@@ -287,12 +287,12 @@ func GetMonthlyPurchasesByUser(username string, startMonth time.Time, endMonth t
 			var tmpDate string
 
 			if err := res.Scan(&s.ID, &tmpDate, &s.EventName, &s.Spending); err != nil {
-				log.Printf("ERROR: couldn't parse purchases by user: %s", err)
+				logger.Errorf("couldn't parse purchases by user: %s", err)
 				continue
 			}
 			parsedDate, err := time.Parse("01-2006", tmpDate)
 			if err != nil {
-				log.Printf("ERROR: Couldn't parse month-year for spending: %v", err)
+				logger.Errorf("Couldn't parse month-year for spending: %v", err)
 				continue
 			}
 			s.MonthYear = parsedDate
@@ -319,7 +319,7 @@ func GetMonthlyData(startMonth time.Time, endMonth time.Time) (
 	defer func() {
 		err := stmt.Close() // FIXME
 		if err != nil {
-			log.Printf("couldn't close data gathering by user statement: %s", err)
+			logger.Errorf("Couldn't close data gathering by user statement: %s", err)
 		}
 	}()
 
@@ -334,7 +334,7 @@ func GetMonthlyData(startMonth time.Time, endMonth time.Time) (
 	}
 	defer func() {
 		if err := res.Close(); err != nil {
-			log.Printf("ERROR: couldn't close file handle: %s", err)
+			logger.Errorf("couldn't close file handle: %s", err)
 		}
 	}()
 
@@ -345,13 +345,13 @@ func GetMonthlyData(startMonth time.Time, endMonth time.Time) (
 		var salaryTmp sql.NullFloat64
 
 		if err := res.Scan(&s.Username, &tmpDate, &spendingTmp, &salaryTmp); err != nil {
-			log.Printf("ERROR: couldn't parse purchases by user: %s", err)
+			logger.Errorf("couldn't parse purchases by user: %s", err)
 			continue
 		}
 
 		parsedDate, err := time.Parse("01-2006", tmpDate)
 		if err != nil {
-			log.Printf("ERROR: couldn't parse month-year: %v", err)
+			logger.Errorf("couldn't parse month-year: %v", err)
 			continue
 		}
 		s.MonthYear = parsedDate
@@ -393,7 +393,7 @@ func getSalaryDataByUser(username string, month time.Time) (float64, error) {
 	}
 	defer func() {
 		if err := res.Close(); err != nil {
-			log.Printf("ERROR: couldn't close file handle in getSalaryDataByUser: %s", err)
+			logger.Errorf("couldn't close file handle in getSalaryDataByUser: %s", err)
 		}
 	}()
 
@@ -405,7 +405,7 @@ func getSalaryDataByUser(username string, month time.Time) (float64, error) {
 			return math.NaN(), errors.New(errMsg)
 		}
 	}
-	log.Printf("Salary for %s on %s is %.4f",
+	logger.Infof("Salary for %s on %s is %.4f",
 		username,
 		month.UTC().Format("01-2006"),
 		salary)
@@ -434,7 +434,7 @@ func GetSalariesByMonthRange(startMonth time.Time, endMonth time.Time) ([]DebtDa
 	}
 	defer func() {
 		if err := res.Close(); err != nil {
-			log.Printf("ERROR: couldn't close file handle in GetSalariesByMonth: %s", err)
+			logger.Errorf("couldn't close file handle in GetSalariesByMonth: %s", err)
 		}
 	}()
 
@@ -452,7 +452,7 @@ func GetSalariesByMonthRange(startMonth time.Time, endMonth time.Time) ([]DebtDa
 		salaries = append(salaries, salary)
 
 	}
-	log.Printf("Salaries starting on %s between %s are %+v",
+	logger.Infof("Salaries starting on %s between %s are %+v",
 		s, e, salaries)
 
 	return salaries, nil

@@ -16,6 +16,7 @@ import (
 	"time"
 	"weezel/budget/confighandler"
 	"weezel/budget/dbengine"
+	"weezel/budget/logger"
 	"weezel/budget/shortlivedpage"
 	"weezel/budget/telegramhandler"
 	"weezel/budget/utils"
@@ -24,18 +25,10 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
-const (
-	logFileName string = "budget.log"
-)
-
-var (
-	loggingFileHandle *os.File
-)
-
 func connectAndInitDb(dbPath string) *sql.DB {
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 	if exists, _ := utils.PathExists(dbPath); exists == false {
 		dbengine.CreateSchema(db)
@@ -49,32 +42,16 @@ func connectAndInitDb(dbPath string) *sql.DB {
 func setWorkingDirectory(workdirPath string) string {
 	absPath, err := filepath.Abs(workdirPath)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 	cdwPath := path.Dir(absPath + "/")
 	if err := os.Chdir(cdwPath); err != nil {
-		log.Fatal(err)
+		logger.Fatal(err)
 	}
 	log.Printf("Working directory set to %s\n", cdwPath)
 
 	trimmed := strings.TrimRight(cdwPath, "/")
 	return trimmed + "/"
-}
-
-func logToFile(logDir string) *os.File {
-	loggingFileAbsPath := path.Join(logDir, logFileName)
-	log.Printf("Logging to file %s\n", loggingFileAbsPath)
-	log.SetFlags(log.Ldate | log.Ltime)
-	/* #nosec */
-	f, err := os.OpenFile(
-		loggingFileAbsPath,
-		os.O_APPEND|os.O_CREATE|os.O_RDWR,
-		0600)
-	if err != nil {
-		log.Fatalf("Error opening file %v\n", err)
-	}
-	log.SetOutput(f)
-	return f
 }
 
 func main() {
@@ -91,12 +68,9 @@ func main() {
 
 	var cwd string = setWorkingDirectory(conf.TeleConfig.WorkingDir)
 
-	// This will initialize loggingFileHandle variable
-	loggingFileHandle = logToFile(cwd)
+	logger.SetLoggingToDirectory(cwd)
 	defer func() {
-		if err := loggingFileHandle.Close(); err != nil {
-			log.Printf("ERROR: couldn't close file: %s", err)
-		}
+		logger.CloseLogFile()
 	}()
 
 	// protector.Protect(filepath.Join(cwd, "/"))
@@ -110,7 +84,7 @@ func main() {
 		log.Fatalf("Couldn't create a new bot: %s", err)
 	}
 	bot.Debug = false
-	log.Printf("Using sername: %s", bot.Self.UserName)
+	logger.Infof("Using sername: %s", bot.Self.UserName)
 	go telegramhandler.ConnectionHandler(
 		bot,
 		conf.TeleConfig.ChannelId,
@@ -126,9 +100,9 @@ func main() {
 	}
 
 	go func() {
-		log.Fatal(httpServ.ListenAndServe())
+		logger.Info(httpServ.ListenAndServe())
 	}()
-	log.Printf("Listening on port %q\n", conf.WebserverConfig.HttpPort)
+	logger.Infof("Listening on port %s", conf.WebserverConfig.HttpPort)
 
 	// Graceful shutdown for HTTP server
 	done := make(chan os.Signal, 1)
@@ -136,8 +110,8 @@ func main() {
 	<-done
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	log.Println("HTTP server stopping")
+	logger.Infof("HTTP server stopping")
 	defer cancel()
-	log.Fatal(httpServ.Shutdown(ctx))
+	logger.Fatal(httpServ.Shutdown(ctx))
 
 }

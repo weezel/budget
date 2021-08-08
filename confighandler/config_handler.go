@@ -1,7 +1,7 @@
 package confighandler
 
 import (
-	"log"
+	"weezel/budget/logger"
 
 	toml "github.com/pelletier/go-toml"
 )
@@ -25,7 +25,7 @@ type TomlConfig struct {
 func LoadConfig(filedata []byte) TomlConfig {
 	config := TomlConfig{}
 	if err := toml.Unmarshal(filedata, &config); err != nil {
-		log.Panicf("Error parsing config: %s", err)
+		logger.Panicf("Error parsing config: %s", err)
 	}
 	return config
 }
