@@ -137,7 +137,13 @@ func InsertSalary(username string, salary float64, recordTime time.Time) bool {
 	return true
 }
 
-func InsertShopping(username, shopName, category string, purchaseDate time.Time, price float64) error {
+func InsertPurchase(
+	username string,
+	shopName string,
+	category string,
+	purchaseDate time.Time,
+	price float64,
+) error {
 	stmt, err := dbConn.Prepare(InsertShoppingQuery)
 	if err != nil {
 		logger.Errorf("preparing shopping insert statement failed: %v", err)
