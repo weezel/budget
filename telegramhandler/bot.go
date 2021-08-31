@@ -275,7 +275,6 @@ func SendTelegram(
 
 func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 	var command string
-	var shopName string
 	var lastElem string
 	var err error
 
@@ -309,6 +308,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 				continue
 			}
 
+			shopName := tokenized[1]
 			msg := handlePurchase(shopName, lastElem, username, tokenized)
 			outMsg := tgbotapi.NewMessage(channelId, msg)
 			if err = SendTelegram(bot, outMsg, false); err != nil {
