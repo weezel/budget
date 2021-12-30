@@ -15,7 +15,7 @@ import (
 	"weezel/budget/shortlivedpage"
 	"weezel/budget/utils"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 var splitPath = regexp.MustCompile(`\s+`)
@@ -280,11 +280,8 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
-	updates, err := bot.GetUpdatesChan(u)
-	if err != nil {
-		logger.Errorf("Failed to receive updates: %#v", err)
-	}
 
+	updates := bot.GetUpdatesChan(u)
 	for update := range updates {
 		if update.Message == nil { // ignore any non-Message Updates
 			continue
