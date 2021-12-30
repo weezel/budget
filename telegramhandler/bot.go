@@ -23,7 +23,6 @@ var splitPath = regexp.MustCompile(`\s+`)
 func displayHelp(username string, channelId int64, bot *tgbotapi.BotAPI) {
 	logger.Infof("Help requested by %s", username)
 	helpMsg := "Tunnistan seuraavat komennot:\n\n"
-	helpMsg += "kulutus\n\n"
 	helpMsg += "**osto** paikka [vapaaehtoinen pvm muodossa kk-vvvv] xx.xx\n\n"
 	helpMsg += "**ostot** kk-vvvv kk-vvvv (mistä mihin)\n\n"
 	helpMsg += "**palkka** kk-vvvv xxxx.xx (nettona)\r\n"
