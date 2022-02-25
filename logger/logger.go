@@ -3,15 +3,11 @@ package logger
 import (
 	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	"github.com/sirupsen/logrus"
-)
-
-const (
-	logFileName string = "budget.log"
 )
 
 var (
@@ -20,7 +16,11 @@ var (
 )
 
 func init() {
-	log.SetLevel(logrus.InfoLevel) // TODO Configure in config file
+	if strings.ToLower(os.Getenv("DEBUG")) == "true" {
+		log.SetLevel(logrus.DebugLevel)
+	} else {
+		log.SetLevel(logrus.InfoLevel)
+	}
 	log.SetFormatter(&logrus.TextFormatter{
 		DisableColors: true,
 		FullTimestamp: true,
@@ -53,18 +53,23 @@ func funcCallTracer() *logrus.Entry {
 	})
 }
 
-func SetLoggingToDirectory(logDir string) {
-	loggingFileAbsPath := path.Join(logDir, logFileName)
+func SetLoggingToFile(logFilePath string) error {
+	cleanedPath, err := filepath.Abs(logFilePath)
+	if err != nil {
+		return err
+	}
+	loggingFileAbsPath := filepath.Clean(cleanedPath)
 	log.Infof("Logging to file %s", loggingFileAbsPath)
-	/* #nosec */
 	logFileHandle, err := os.OpenFile(
 		loggingFileAbsPath,
 		os.O_APPEND|os.O_CREATE|os.O_RDWR,
 		0600)
 	if err != nil {
-		log.Fatalf("Error opening file %v\n", err)
+		return err
 	}
 	log.SetOutput(logFileHandle)
+
+	return nil
 }
 
 func CloseLogFile() {
@@ -74,7 +79,7 @@ func CloseLogFile() {
 
 	if err := logFileHandle.Close(); err != nil {
 		fmt.Println("Couldn't close logging file handle")
-		log.Error("Couldn't close logging file handle")
+		Error("Couldn't close logging file handle")
 	}
 }
 

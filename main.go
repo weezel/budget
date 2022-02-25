@@ -55,6 +55,8 @@ func setWorkingDirectory(workdirPath string) string {
 }
 
 func main() {
+	var err error
+
 	if len(os.Args) < 2 {
 		fmt.Println("ERROR: Give config file as an argument")
 		os.Exit(1)
@@ -68,7 +70,10 @@ func main() {
 
 	var cwd string = setWorkingDirectory(conf.TeleConfig.WorkingDir)
 
-	logger.SetLoggingToDirectory(cwd)
+	logger.SetLoggingToFile(filepath.Join(cwd, "budget.log"))
+	if err != nil {
+		logger.Fatal(err)
+	}
 	defer func() {
 		logger.CloseLogFile()
 	}()
@@ -81,7 +86,7 @@ func main() {
 
 	bot, err := tgbotapi.NewBotAPI(conf.TeleConfig.ApiKey)
 	if err != nil {
-		log.Fatalf("Couldn't create a new bot: %s", err)
+		logger.Fatalf("Couldn't create a new bot: %s", err)
 	}
 	bot.Debug = false
 	logger.Infof("Using sername: %s", bot.Self.UserName)
