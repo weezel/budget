@@ -30,7 +30,7 @@ func connectAndInitDb(dbPath string) *sql.DB {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	if exists, _ := utils.PathExists(dbPath); exists == false {
+	if exists, _ := utils.PathExists(dbPath); !exists {
 		dbengine.CreateSchema(db)
 	}
 
