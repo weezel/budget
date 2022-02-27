@@ -70,7 +70,7 @@ func main() {
 
 	var cwd string = setWorkingDirectory(conf.TeleConfig.WorkingDir)
 
-	logger.SetLoggingToFile(filepath.Join(cwd, "budget.log"))
+	err = logger.SetLoggingToFile(filepath.Join(cwd, "budget.log"))
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -82,7 +82,6 @@ func main() {
 
 	db := connectAndInitDb(filepath.Join(cwd, "budget.db"))
 	dbengine.UpdateDBReference(db)
-	db = nil // GC variable
 
 	bot, err := tgbotapi.NewBotAPI(conf.TeleConfig.ApiKey)
 	if err != nil {
