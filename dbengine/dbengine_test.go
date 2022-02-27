@@ -801,6 +801,9 @@ func TestInsertPurchase(t *testing.T) {
 				t.Errorf("InsertPurchase() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			rows, err := memDb.Query("SELECT * FROM budget;")
+			if err != nil {
+				t.Error(err)
+			}
 			for rows.Next() {
 				var id int64
 				var username string
