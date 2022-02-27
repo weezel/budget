@@ -12,7 +12,6 @@ import (
 var (
 	lock            sync.RWMutex
 	shortLivedPages map[string]ShortLivedPage
-	cleanerSchedule *scheduler.Scheduler
 )
 
 type ShortLivedPage struct {
