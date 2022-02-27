@@ -23,7 +23,16 @@ type DebtData struct {
 	Expanses float64
 	Owes     float64
 	Salary   float64
-	Date     string
+	Date     time.Time
+}
+
+type BudgetRow struct {
+	ID           int64
+	Username     string
+	Shopname     string
+	Category     string
+	Purchasedate time.Time
+	Price        float64
 }
 
 func (d *DebtData) PrettyPrint() string {
@@ -47,15 +56,6 @@ func UpdateDBReference(db *sql.DB) {
 		return
 	}
 	dbConn = db
-}
-
-type BudgetRow struct {
-	ID           int64
-	Username     string
-	Shopname     string
-	Category     string
-	Purchasedate string
-	Price        float64
 }
 
 func GetSpendingRowByID(bid int64, username string) (BudgetRow, error) {
@@ -122,7 +122,7 @@ func InsertSalary(username string, salary float64, recordTime time.Time) bool {
 	res, err := stmt.Exec(
 		sql.Named("username", username),
 		sql.Named("salary", salary),
-		sql.Named("recordtime", recordTime.Format("01-2006")),
+		sql.Named("recordtime", recordTime.Format("2006-01-02")),
 	)
 	if err != nil {
 		logger.Errorf("failed to insert salary data: %s", err)
@@ -154,7 +154,7 @@ func InsertPurchase(
 		sql.Named("username", username),
 		sql.Named("shopname", shopName),
 		sql.Named("category", category),
-		sql.Named("purchasedate", purchaseDate.Format("01-2006")),
+		sql.Named("purchasedate", purchaseDate.Format("2006-01-02")),
 		sql.Named("price", price),
 	)
 	if err != nil {
@@ -179,7 +179,7 @@ func GetSalaryCompensatedDebts(month time.Time) ([]DebtData, error) {
 	}
 	defer stmt.Close()
 
-	res, err := stmt.Query(month.Format("01-2006"))
+	res, err := stmt.Query(month.Format("2006-01"))
 	if err != nil {
 		errMsg := fmt.Sprintf("ERROR: couldn't get purchase data: %v", err)
 		return []DebtData{}, errors.New(errMsg)
@@ -194,8 +194,7 @@ func GetSalaryCompensatedDebts(month time.Time) ([]DebtData, error) {
 		d := DebtData{}
 		err = res.Scan(&d.Username, &d.Date, &d.Expanses)
 		if err != nil {
-			errMsg := fmt.Sprintf("ERROR: Couldn't assign debt data: %v", err)
-			return []DebtData{}, errors.New(errMsg)
+			return []DebtData{}, err
 		}
 		debts = append(debts, d)
 	}
@@ -275,7 +274,7 @@ func GetMonthlyPurchasesByUser(username string, startMonth time.Time, endMonth t
 	}()
 
 	for iterMonth := startMonth; iterMonth.Before(endMonth) || iterMonth.Equal(endMonth); iterMonth = iterMonth.AddDate(0, 1, 0) {
-		res, err := stmt.Query(username, iterMonth.Format("01-2006"))
+		res, err := stmt.Query(username, iterMonth.Format("2006-01"))
 		if err != nil {
 			errMsg := fmt.Sprintf(
 				"ERROR: Couldn't get purchases by user: %v",
@@ -290,19 +289,11 @@ func GetMonthlyPurchasesByUser(username string, startMonth time.Time, endMonth t
 
 		for res.Next() {
 			s := external.SpendingHistory{}
-			var tmpDate string
 
-			if err := res.Scan(&s.ID, &tmpDate, &s.EventName, &s.Spending); err != nil {
+			if err := res.Scan(&s.ID, &s.MonthYear, &s.EventName, &s.Spending); err != nil {
 				logger.Errorf("couldn't parse purchases by user: %s", err)
 				continue
 			}
-			parsedDate, err := time.Parse("01-2006", tmpDate)
-			if err != nil {
-				logger.Errorf("Couldn't parse month-year for spending: %v", err)
-				continue
-			}
-			s.MonthYear = parsedDate
-
 			spending[s.MonthYear] = append(spending[s.MonthYear], s)
 		}
 	}
@@ -330,8 +321,8 @@ func GetMonthlyData(startMonth time.Time, endMonth time.Time) (
 	}()
 
 	res, err := stmt.Query(
-		startMonth.Format("01-2006"),
-		endMonth.Format("01-2006"))
+		startMonth.Format("2006-01"),
+		endMonth.Format("2006-01"))
 	if err != nil {
 		errMsg := fmt.Sprintf(
 			"ERROR: Couldn't get monthly data: %v",
@@ -346,21 +337,13 @@ func GetMonthlyData(startMonth time.Time, endMonth time.Time) (
 
 	for res.Next() {
 		s := external.SpendingHistory{}
-		var tmpDate string
 		var spendingTmp sql.NullFloat64
 		var salaryTmp sql.NullFloat64
 
-		if err := res.Scan(&s.Username, &tmpDate, &spendingTmp, &salaryTmp); err != nil {
+		if err := res.Scan(&s.Username, &s.MonthYear, &spendingTmp, &salaryTmp); err != nil {
 			logger.Errorf("couldn't parse purchases by user: %s", err)
 			continue
 		}
-
-		parsedDate, err := time.Parse("01-2006", tmpDate)
-		if err != nil {
-			logger.Errorf("couldn't parse month-year: %v", err)
-			continue
-		}
-		s.MonthYear = parsedDate
 
 		if spendingTmp.Valid {
 			s.Spending = spendingTmp.Float64
@@ -390,7 +373,7 @@ func getSalaryDataByUser(username string, month time.Time) (float64, error) {
 	}
 	defer stmt.Close()
 
-	res, err := stmt.Query(username, month.Format("01-2006"))
+	res, err := stmt.Query(username, month.Format("2006-01"))
 	if err != nil {
 		errMsg := fmt.Sprintf(
 			"ERROR: Couldn't get list of salaries: %v",
@@ -429,8 +412,8 @@ func GetSalariesByMonthRange(startMonth time.Time, endMonth time.Time) ([]DebtDa
 	}
 	defer stmt.Close()
 
-	s, e := startMonth.UTC().Format("01-2006"),
-		endMonth.UTC().Format("01-2006")
+	s, e := startMonth.UTC().Format("2006-01"),
+		endMonth.UTC().Format("2006-01")
 	res, err := stmt.Query(s, e)
 	if err != nil {
 		errMsg := fmt.Sprintf(
@@ -458,7 +441,7 @@ func GetSalariesByMonthRange(startMonth time.Time, endMonth time.Time) ([]DebtDa
 		salaries = append(salaries, salary)
 
 	}
-	logger.Infof("Salaries starting on %s between %s are %+v",
+	logger.Debugf("Salaries starting on %s between %s are %+v",
 		s, e, salaries)
 
 	return salaries, nil

@@ -14,7 +14,7 @@ CREATE TABLE budget(
 	username TEXT NOT NULL,
 	shopname TEXT NOT NULL,
 	category TEXT NOT NULL,
-	purchasedate TEXT NOT NULL,
+	purchasedate DATE NOT NULL,
 	price REAL NOT NULL
 );
 
@@ -22,7 +22,7 @@ CREATE TABLE salary(
 	id INTEGER PRIMARY KEY,
 	username TEXT NOT NULL,
 	salary REAL NOT NULL,
-	recordtime TEXT NOT NULL
+	recordtime DATE NOT NULL
 );`
 
 const InsertShoppingQuery string = `
@@ -36,7 +36,7 @@ INSERT INTO budget(
 	:username,
 	:shopname,
 	:category,
-	:purchasedate,
+	date(:purchasedate),
 	:price
 );`
 
@@ -48,17 +48,20 @@ INSERT INTO salary(
 ) VALUES (
 	:username,
 	:salary,
-	:recordtime
+	date(:recordtime)
 );`
 
 const PurchasesQuery string = `
 SELECT username, purchasedate, SUM(price) FROM budget
 	GROUP BY purchasedate, username
-	HAVING purchasedate = ?;
+	HAVING strftime('%Y-%m', purchasedate) = ?
+	ORDER BY username;
 `
 
 const SalaryQuery string = `
-SELECT salary FROM salary WHERE username = ? AND recordtime = ?;
+SELECT salary FROM salary
+	WHERE username = ?
+	AND strftime('%Y-%m', recordtime) = ?;
 `
 
 const SalariesQuery string = `
@@ -71,14 +74,14 @@ SELECT username, salary, recordtime FROM salary
 const MonthlySpendingQuery string = `
 SELECT username, purchasedate, SUM(price) FROM budget
 	GROUP BY purchasedate, username
-	HAVING purchasedate LIKE ?
-	ORDER BY purchasedate, username;
+	HAVING purchasedate strftime('%Y-%m', purchasedate) = ?
+	ORDER BY username, purchasedate;
 `
 const MonthlyPurchasesByUserQuery string = `
 SELECT id, purchasedate, shopname, price FROM budget
 	GROUP BY purchasedate, shopname, price
 	HAVING username = ?
-	AND purchasedate = ?
+	AND strftime('%Y-%m', purchasedate) = ?
 	ORDER BY purchasedate, shopname, price;
 `
 
