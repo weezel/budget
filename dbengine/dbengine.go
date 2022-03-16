@@ -267,7 +267,7 @@ func GetMonthlyPurchasesByUser(username string, startMonth time.Time, endMonth t
 		return map[time.Time][]external.SpendingHistory{}, errors.New(errMsg)
 	}
 	defer func() {
-		err := stmt.Close() // FIXME
+		err := stmt.Close()
 		if err != nil {
 			logger.Errorf("couldn't close purchases by user statement: %s", err)
 		}
@@ -277,8 +277,7 @@ func GetMonthlyPurchasesByUser(username string, startMonth time.Time, endMonth t
 		res, err := stmt.Query(username, iterMonth.Format("2006-01"))
 		if err != nil {
 			errMsg := fmt.Sprintf(
-				"ERROR: Couldn't get purchases by user: %v",
-				err)
+				"ERROR: Couldn't get purchases by user: %v", err)
 			return map[time.Time][]external.SpendingHistory{}, errors.New(errMsg)
 		}
 		defer func() {
@@ -314,7 +313,7 @@ func GetMonthlyData(startMonth time.Time, endMonth time.Time) (
 		return map[time.Time][]external.SpendingHistory{}, errors.New(errMsg)
 	}
 	defer func() {
-		err := stmt.Close() // FIXME
+		err := stmt.Close()
 		if err != nil {
 			logger.Errorf("Couldn't close data gathering by user statement: %s", err)
 		}
@@ -341,7 +340,7 @@ func GetMonthlyData(startMonth time.Time, endMonth time.Time) (
 		var salaryTmp sql.NullFloat64
 
 		if err := res.Scan(&s.Username, &s.MonthYear, &spendingTmp, &salaryTmp); err != nil {
-			logger.Errorf("couldn't parse purchases by user: %s", err)
+			logger.Errorf("couldn't parse purchases for user: %s", err)
 			continue
 		}
 
@@ -417,8 +416,7 @@ func GetSalariesByMonthRange(startMonth time.Time, endMonth time.Time) ([]DebtDa
 	res, err := stmt.Query(s, e)
 	if err != nil {
 		errMsg := fmt.Sprintf(
-			"ERROR: Couldn't get list of salaries: %v",
-			err)
+			"ERROR: Couldn't get list of salaries: %v", err)
 		return []DebtData{}, errors.New(errMsg)
 	}
 	defer func() {
