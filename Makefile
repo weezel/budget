@@ -2,7 +2,7 @@
 GO		?= go
 DOCKER		?= docker
 # -s removes symbol table and -ldflags -w debugging symbols
-LDFLAGS		?= -trimpath -ldflags "-s -w"
+LDFLAGS		?= -asmflags -trimpath -ldflags "-s -w"
 GOARCH		?= amd64
 BINARY		?= budget
 CGO_ENABLED	?= 1
