@@ -26,7 +26,6 @@ func displayHelp(username string, channelId int64, bot *tgbotapi.BotAPI) {
 	helpMsg += "**osto** paikka [vapaaehtoinen pvm muodossa kk-vvvv] xx.xx\n\n"
 	helpMsg += "**ostot** kk-vvvv kk-vvvv (mistä mihin)\n\n"
 	helpMsg += "**palkka** kk-vvvv xxxx.xx (nettona)\r\n"
-	helpMsg += "**palkat** kk-vvvv\r\n"
 	helpMsg += "**poista** osto ID\r\n"
 	helpMsg += "**tilastot** kk-vvvv kk-vvvv\r\n"
 	helpMsg += "**velat** tai **velkaa** kk-vvvv\n\n"
@@ -289,11 +288,10 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 		username := update.Message.From.String()
 		msg := update.Message.Text
 		tokenized := splitPath.Split(msg, -1)
-		lastElem = strings.Replace(
+		lastElem = strings.ReplaceAll(
 			tokenized[len(tokenized)-1],
 			",",
-			".",
-			-1)
+			".")
 		logger.Infof("Tokenized: %v", tokenized)
 		command = strings.ToLower(tokenized[0])
 
