@@ -293,14 +293,14 @@ INSERT INTO salary (username, salary, recordtime) VALUES
 		wantErr bool
 	}{
 		{
-			"Get salaries on February",
+			"Get February salaries",
 			args{time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
 				time.Date(2020, 3, 1, 0, 0, 0, 0, time.UTC)},
 			[]DebtData{},
 			false,
 		},
 		{
-			"Get salaries on June",
+			"Get June salaries",
 			args{time.Date(2020, 6, 1, 0, 0, 0, 0, time.UTC),
 				time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC)},
 			[]DebtData{
@@ -313,7 +313,7 @@ INSERT INTO salary (username, salary, recordtime) VALUES
 			false,
 		},
 		{
-			"Get salaries on July",
+			"Get July salaries",
 			args{time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
 				time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC)},
 			[]DebtData{
@@ -331,7 +331,7 @@ INSERT INTO salary (username, salary, recordtime) VALUES
 			false,
 		},
 		{
-			"Get salaries on August",
+			"Get August salaries",
 			args{time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC),
 				time.Date(2020, 9, 1, 0, 0, 0, 0, time.UTC)},
 			[]DebtData{
@@ -573,24 +573,22 @@ func TestGetMonthlyData(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    map[time.Time][]external.SpendingHistory
+		want    []external.SpendingHistory
 		wantErr bool
 	}{
 		{
 			name: "One month data",
 			args: args{
 				startMonth: time.Date(2020, 6, 1, 0, 0, 0, 0, time.UTC),
-				endMonth:   time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
+				endMonth:   time.Date(2020, 6, 1, 0, 0, 0, 0, time.UTC),
 			},
-			want: map[time.Time][]external.SpendingHistory{
-				time.Date(2020, 6, 1, 0, 0, 0, 0, time.UTC): {
-					external.SpendingHistory{
-						ID:        0,
-						Username:  "tom",
-						MonthYear: time.Date(2020, 6, 1, 0, 0, 0, 0, time.UTC),
-						Spending:  8.0,
-						Salary:    1606.0,
-					},
+			want: []external.SpendingHistory{
+				{
+					ID:        0,
+					Username:  "tom",
+					MonthYear: time.Date(2020, 6, 1, 0, 0, 0, 0, time.UTC),
+					Spending:  8.0,
+					Salary:    1606.0,
 				},
 			},
 			wantErr: false,
@@ -599,52 +597,46 @@ func TestGetMonthlyData(t *testing.T) {
 			name: "Three months data",
 			args: args{
 				startMonth: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
-				endMonth:   time.Date(2020, 4, 1, 0, 0, 0, 0, time.UTC),
+				endMonth:   time.Date(2020, 3, 1, 0, 0, 0, 0, time.UTC),
 			},
-			want: map[time.Time][]external.SpendingHistory{
-				time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC): {
-					external.SpendingHistory{
-						ID:        0,
-						Username:  "alice",
-						MonthYear: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
-						Spending:  14.0,
-						Salary:    2001,
-					},
-					external.SpendingHistory{
-						ID:        0,
-						Username:  "tom",
-						MonthYear: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
-						Spending:  10,
-						Salary:    1601.0,
-					},
+			want: []external.SpendingHistory{
+				{
+					ID:        0,
+					Username:  "alice",
+					MonthYear: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+					Spending:  14.0,
+					Salary:    2001,
 				},
-				time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC): {
-					external.SpendingHistory{
-						Username:  "alice",
-						MonthYear: time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
-						Spending:  9,
-						Salary:    2002.0,
-					},
-					external.SpendingHistory{
-						Username:  "tom",
-						MonthYear: time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
-						Spending:  15.4,
-						Salary:    1602.0,
-					},
+				{
+					Username:  "alice",
+					MonthYear: time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
+					Spending:  9,
+					Salary:    2002.0,
 				},
-				time.Date(2020, 3, 1, 0, 0, 0, 0, time.UTC): {
-					external.SpendingHistory{
-						Username:  "alice",
-						MonthYear: time.Date(2020, 3, 1, 0, 0, 0, 0, time.UTC),
-						Spending:  33.46,
-						Salary:    2003.0,
-					},
-					external.SpendingHistory{
-						Username:  "tom",
-						MonthYear: time.Date(2020, 3, 1, 0, 0, 0, 0, time.UTC),
-						Spending:  4.4,
-						Salary:    1603.0,
-					},
+				{
+					Username:  "alice",
+					MonthYear: time.Date(2020, 3, 1, 0, 0, 0, 0, time.UTC),
+					Spending:  33.46,
+					Salary:    2003.0,
+				},
+				{
+					ID:        0,
+					Username:  "tom",
+					MonthYear: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+					Spending:  10,
+					Salary:    1601.0,
+				},
+				{
+					Username:  "tom",
+					MonthYear: time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
+					Spending:  15.4,
+					Salary:    1602.0,
+				},
+				{
+					Username:  "tom",
+					MonthYear: time.Date(2020, 3, 1, 0, 0, 0, 0, time.UTC),
+					Spending:  4.4,
+					Salary:    1603.0,
 				},
 			},
 			wantErr: false,
@@ -655,15 +647,13 @@ func TestGetMonthlyData(t *testing.T) {
 				startMonth: time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC),
 				endMonth:   time.Date(2020, 9, 1, 0, 0, 0, 0, time.UTC),
 			},
-			want: map[time.Time][]external.SpendingHistory{
-				time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC): {
-					external.SpendingHistory{
-						ID:        0,
-						Username:  "tom",
-						MonthYear: time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC),
-						Spending:  768.0,
-						Salary:    1608.0,
-					},
+			want: []external.SpendingHistory{
+				{
+					ID:        0,
+					Username:  "tom",
+					MonthYear: time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC),
+					Spending:  768.0,
+					Salary:    1608.0,
 				},
 			},
 			wantErr: false,

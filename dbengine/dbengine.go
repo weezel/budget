@@ -300,17 +300,15 @@ func GetMonthlyPurchasesByUser(username string, startMonth time.Time, endMonth t
 }
 
 func GetMonthlyData(startMonth time.Time, endMonth time.Time) (
-	map[time.Time][]external.SpendingHistory,
+	[]external.SpendingHistory,
 	error,
 ) {
-	spending := make(map[time.Time][]external.SpendingHistory)
+	var spending []external.SpendingHistory = []external.SpendingHistory{}
 
 	stmt, err := dbConn.Prepare(DateRangeSpendingQuery)
 	if err != nil {
-		errMsg := fmt.Sprintf(
-			"ERROR: Failed to prepare purchases by user query: %v",
-			err)
-		return map[time.Time][]external.SpendingHistory{}, errors.New(errMsg)
+		errMsg := fmt.Sprintf("Failed to prepare purchases by user query: %v", err)
+		return []external.SpendingHistory{}, errors.New(errMsg)
 	}
 	defer func() {
 		err := stmt.Close()
@@ -320,13 +318,11 @@ func GetMonthlyData(startMonth time.Time, endMonth time.Time) (
 	}()
 
 	res, err := stmt.Query(
-		startMonth.Format("2006-01"),
-		endMonth.Format("2006-01"))
+		startMonth.Format("2006-01-02"),
+		endMonth.Format("2006-01-02"))
 	if err != nil {
-		errMsg := fmt.Sprintf(
-			"ERROR: Couldn't get monthly data: %v",
-			err)
-		return map[time.Time][]external.SpendingHistory{}, errors.New(errMsg)
+		errMsg := fmt.Sprintf("Couldn't get monthly data: %v", err)
+		return []external.SpendingHistory{}, errors.New(errMsg)
 	}
 	defer func() {
 		if err := res.Close(); err != nil {
@@ -339,8 +335,15 @@ func GetMonthlyData(startMonth time.Time, endMonth time.Time) (
 		var spendingTmp sql.NullFloat64
 		var salaryTmp sql.NullFloat64
 
-		if err := res.Scan(&s.Username, &s.MonthYear, &spendingTmp, &salaryTmp); err != nil {
+		var t string
+		if err := res.Scan(&s.Username, &t, &spendingTmp, &salaryTmp); err != nil {
 			logger.Errorf("couldn't parse purchases for user: %s", err)
+			continue
+		}
+
+		s.MonthYear, err = time.Parse("2006-01", t)
+		if err != nil {
+			logger.Error(err)
 			continue
 		}
 
@@ -356,7 +359,7 @@ func GetMonthlyData(startMonth time.Time, endMonth time.Time) (
 			s.Salary = math.NaN()
 		}
 
-		spending[s.MonthYear] = append(spending[s.MonthYear], s)
+		spending = append(spending, s)
 	}
 
 	return spending, nil
@@ -365,19 +368,13 @@ func GetMonthlyData(startMonth time.Time, endMonth time.Time) (
 func getSalaryDataByUser(username string, month time.Time) (float64, error) {
 	stmt, err := dbConn.Prepare(SalaryQuery)
 	if err != nil {
-		errMsg := fmt.Sprintf(
-			"ERROR: Failed to prepare salary query: %v",
-			err)
-		return math.NaN(), errors.New(errMsg)
+		return math.NaN(), err
 	}
 	defer stmt.Close()
 
 	res, err := stmt.Query(username, month.Format("2006-01"))
 	if err != nil {
-		errMsg := fmt.Sprintf(
-			"ERROR: Couldn't get list of salaries: %v",
-			err)
-		return math.NaN(), errors.New(errMsg)
+		return math.NaN(), err
 	}
 	defer func() {
 		if err := res.Close(); err != nil {

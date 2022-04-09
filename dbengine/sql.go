@@ -86,10 +86,10 @@ SELECT id, purchasedate, shopname, price FROM budget
 `
 
 const DateRangeSpendingQuery string = `
-SELECT b.username, b.purchasedate, sum(price) AS expanses, s.salary FROM budget AS b
+SELECT b.username, strftime('%Y-%m', b.purchasedate), sum(price) AS expanses, s.salary FROM budget AS b
         LEFT JOIN salary AS s ON b.username = s.username
-		AND s.recordtime = b.purchasedate
-	WHERE b.purchasedate BETWEEN ? AND ?
+		AND strftime('%Y-%m-%d', s.recordtime) = strftime('%Y-%m-%d', b.purchasedate)
+	WHERE b.purchasedate BETWEEN ? AND DATE(?, 'start of month', '+1 month', '-1 day')
 	GROUP BY b.username, b.purchasedate
 	ORDER BY b.username, b.purchasedate, expanses;
 `
