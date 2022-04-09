@@ -17,13 +17,5 @@ type SpendingHistory struct {
 type SpendingHTMLOutput struct {
 	From      time.Time
 	To        time.Time
-	Spendings map[time.Time][]SpendingHistory
-}
-
-// Helper function for HTML template rendering
-func (s SpendingHTMLOutput) GetOne() SpendingHistory {
-	for _, val := range s.Spendings {
-		return val[0]
-	}
-	return SpendingHistory{}
+	Spendings []SpendingHistory
 }

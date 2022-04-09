@@ -25,52 +25,48 @@ func TestHTML(t *testing.T) {
 				spending: external.SpendingHTMLOutput{
 					From: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
 					To:   time.Date(2020, 12, 1, 1, 0, 0, 0, time.UTC),
-					Spendings: map[time.Time][]external.SpendingHistory{
-						time.Date(2020, 10, 1, 0, 0, 0, 0, time.UTC): {
-							{
-								ID:        0,
-								Username:  "Dille",
-								MonthYear: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
-								Spending:  10,
-								EventName: "beer",
-							},
-							{
-								ID:        1,
-								Username:  "Dille",
-								MonthYear: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
-								Spending:  20.5,
-								EventName: "pad thai",
-							},
-							{
-								ID:        2,
-								Username:  "Dille",
-								MonthYear: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
-								Spending:  850.99,
-								EventName: "shoes",
-							},
+					Spendings: []external.SpendingHistory{
+						{
+							ID:        0,
+							Username:  "Dille",
+							MonthYear: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
+							Spending:  10,
+							EventName: "beer",
 						},
-						time.Date(2020, 11, 1, 0, 0, 0, 0, time.UTC): {
-							{
-								ID:        3,
-								Username:  "Dille",
-								MonthYear: time.Date(2020, 11, 1, 1, 0, 0, 0, time.UTC),
-								Spending:  444.4,
-								EventName: "moar beer",
-							},
-							{
-								ID:        4,
-								Username:  "Dille",
-								MonthYear: time.Date(2020, 11, 1, 1, 0, 0, 0, time.UTC),
-								Spending:  555.5,
-								EventName: "cat food",
-							},
-							{
-								ID:        5,
-								Username:  "Dille",
-								MonthYear: time.Date(2020, 11, 1, 1, 0, 0, 0, time.UTC),
-								Spending:  666.6,
-								EventName: "dog food",
-							},
+						{
+							ID:        1,
+							Username:  "Dille",
+							MonthYear: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
+							Spending:  20.5,
+							EventName: "pad thai",
+						},
+						{
+							ID:        2,
+							Username:  "Dille",
+							MonthYear: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
+							Spending:  850.99,
+							EventName: "shoes",
+						},
+						{
+							ID:        3,
+							Username:  "Dille",
+							MonthYear: time.Date(2020, 11, 1, 1, 0, 0, 0, time.UTC),
+							Spending:  444.4,
+							EventName: "moar beer",
+						},
+						{
+							ID:        4,
+							Username:  "Dille",
+							MonthYear: time.Date(2020, 11, 1, 1, 0, 0, 0, time.UTC),
+							Spending:  555.5,
+							EventName: "cat food",
+						},
+						{
+							ID:        5,
+							Username:  "Dille",
+							MonthYear: time.Date(2020, 11, 1, 1, 0, 0, 0, time.UTC),
+							Spending:  666.6,
+							EventName: "dog food",
 						},
 					},
 				},
@@ -84,8 +80,7 @@ func TestHTML(t *testing.T) {
 <title>Kuukausittaiset kulutukset</title>
 </head>
 <body>
-    <h1>Käyttäjän Dille kulutukset</h1>
-    <h3>Alkaen 01-10-2020 ja 01-12-2020 asti</h3>
+    <h3>Kulutukset alkaen 01-10-2020 ja 01-12-2020 asti</h3>
     <table width=650px>
     <col style="width:30px">
     <col style="width:120px">
@@ -151,38 +146,34 @@ func TestHTML(t *testing.T) {
 				spending: external.SpendingHTMLOutput{
 					From: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
 					To:   time.Date(2020, 12, 1, 1, 0, 0, 0, time.UTC),
-					Spendings: map[time.Time][]external.SpendingHistory{
-						time.Date(2020, 10, 1, 0, 0, 0, 0, time.UTC): {
-							{
-								ID:        0,
-								Username:  "Dille",
-								MonthYear: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
-								Spending:  10,
-								Salary:    2000,
-							},
-							{
-								ID:        1,
-								Username:  "John",
-								MonthYear: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
-								Spending:  5,
-								Salary:    4000,
-							},
+					Spendings: []external.SpendingHistory{
+						{
+							ID:        0,
+							Username:  "Dille",
+							MonthYear: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
+							Spending:  10,
+							Salary:    2000,
 						},
-						time.Date(2020, 11, 1, 0, 0, 0, 0, time.UTC): {
-							{
-								ID:        2,
-								Username:  "Dille",
-								MonthYear: time.Date(2020, 11, 1, 1, 0, 0, 0, time.UTC),
-								Spending:  2.22,
-								Salary:    555.5,
-							},
-							{
-								ID:        3,
-								Username:  "John",
-								MonthYear: time.Date(2020, 11, 1, 1, 0, 0, 0, time.UTC),
-								Spending:  1.11,
-								Salary:    7.77,
-							},
+						{
+							ID:        1,
+							Username:  "John",
+							MonthYear: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
+							Spending:  5,
+							Salary:    4000,
+						},
+						{
+							ID:        2,
+							Username:  "Dille",
+							MonthYear: time.Date(2020, 11, 1, 1, 0, 0, 0, time.UTC),
+							Spending:  2.22,
+							Salary:    555.5,
+						},
+						{
+							ID:        3,
+							Username:  "John",
+							MonthYear: time.Date(2020, 11, 1, 1, 0, 0, 0, time.UTC),
+							Spending:  1.11,
+							Salary:    7.77,
 						},
 					},
 				},
