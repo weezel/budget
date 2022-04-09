@@ -76,8 +76,8 @@ func GetSpendingRowByID(bid int64, username string) (BudgetRow, error) {
 	if err != nil {
 		return BudgetRow{}, err
 	} else if err == nil && reflect.DeepEqual(budgetRow, BudgetRow{}) {
-		errMsg := fmt.Sprintf("User not permitted to delete row %d from budget table",
-			bid)
+		errMsg := fmt.Sprintf("User %s not permitted to delete row %d from the budget table",
+			username, bid)
 		return BudgetRow{}, errors.New(errMsg)
 	}
 
@@ -106,7 +106,8 @@ func DeleteSpendingByID(bid int64, username string) error {
 		return err
 	}
 	if rowsAffected > 0 {
-		logger.Infof("Deleted the following row from budget table: %#v", deletableRow)
+		logger.Infof("User %s deleted the following row from the budget table: %#v",
+			username, deletableRow)
 	}
 
 	return nil
@@ -174,15 +175,13 @@ func GetSalaryCompensatedDebts(month time.Time) ([]DebtData, error) {
 
 	stmt, err := dbConn.Prepare(PurchasesQuery)
 	if err != nil {
-		errMsg := fmt.Sprintf("ERROR: Failed to prepare purchase query: %v", err)
-		return []DebtData{}, errors.New(errMsg)
+		return []DebtData{}, err
 	}
 	defer stmt.Close()
 
 	res, err := stmt.Query(month.Format("2006-01"))
 	if err != nil {
-		errMsg := fmt.Sprintf("ERROR: couldn't get purchase data: %v", err)
-		return []DebtData{}, errors.New(errMsg)
+		return []DebtData{}, err
 	}
 	defer func() {
 		if err := res.Close(); err != nil {
@@ -200,8 +199,7 @@ func GetSalaryCompensatedDebts(month time.Time) ([]DebtData, error) {
 	}
 
 	if len(debts) < 2 {
-		errMsg := "ERROR: Someone didn't spend at all on this month"
-		return []DebtData{}, errors.New(errMsg)
+		return []DebtData{}, err
 	}
 
 	debts[0].Salary, err = getSalaryDataByUser(debts[0].Username, month)
@@ -261,10 +259,7 @@ func GetMonthlyPurchasesByUser(username string, startMonth time.Time, endMonth t
 
 	stmt, err := dbConn.Prepare(MonthlyPurchasesByUserQuery)
 	if err != nil {
-		errMsg := fmt.Sprintf(
-			"ERROR: Failed to prepare purchases by user query: %v",
-			err)
-		return map[time.Time][]external.SpendingHistory{}, errors.New(errMsg)
+		return map[time.Time][]external.SpendingHistory{}, err
 	}
 	defer func() {
 		err := stmt.Close()
@@ -276,9 +271,7 @@ func GetMonthlyPurchasesByUser(username string, startMonth time.Time, endMonth t
 	for iterMonth := startMonth; iterMonth.Before(endMonth) || iterMonth.Equal(endMonth); iterMonth = iterMonth.AddDate(0, 1, 0) {
 		res, err := stmt.Query(username, iterMonth.Format("2006-01"))
 		if err != nil {
-			errMsg := fmt.Sprintf(
-				"ERROR: Couldn't get purchases by user: %v", err)
-			return map[time.Time][]external.SpendingHistory{}, errors.New(errMsg)
+			return map[time.Time][]external.SpendingHistory{}, err
 		}
 		defer func() {
 			if err := res.Close(); err != nil {
@@ -386,8 +379,7 @@ func getSalaryDataByUser(username string, month time.Time) (float64, error) {
 	for res.Next() {
 		err = res.Scan(&salary)
 		if err != nil {
-			errMsg := fmt.Sprintf("ERROR: Couldn't assign salary data: %v", err)
-			return math.NaN(), errors.New(errMsg)
+			return math.NaN(), err
 		}
 	}
 	logger.Infof("Salary for %s on %s is %.4f",
@@ -401,10 +393,7 @@ func getSalaryDataByUser(username string, month time.Time) (float64, error) {
 func GetSalariesByMonthRange(startMonth time.Time, endMonth time.Time) ([]DebtData, error) {
 	stmt, err := dbConn.Prepare(SalariesQuery)
 	if err != nil {
-		errMsg := fmt.Sprintf(
-			"ERROR: Failed to prepare salary query: %v",
-			err)
-		return []DebtData{}, errors.New(errMsg)
+		return []DebtData{}, err
 	}
 	defer stmt.Close()
 
@@ -412,9 +401,7 @@ func GetSalariesByMonthRange(startMonth time.Time, endMonth time.Time) ([]DebtDa
 		endMonth.UTC().Format("2006-01")
 	res, err := stmt.Query(s, e)
 	if err != nil {
-		errMsg := fmt.Sprintf(
-			"ERROR: Couldn't get list of salaries: %v", err)
-		return []DebtData{}, errors.New(errMsg)
+		return []DebtData{}, err
 	}
 	defer func() {
 		if err := res.Close(); err != nil {
@@ -427,8 +414,7 @@ func GetSalariesByMonthRange(startMonth time.Time, endMonth time.Time) ([]DebtDa
 		var salary DebtData
 		err = res.Scan(&salary.Username, &salary.Salary, &salary.Date)
 		if err != nil {
-			errMsg := fmt.Sprintf("ERROR: Couldn't assign salary data: %v", err)
-			return []DebtData{}, errors.New(errMsg)
+			return []DebtData{}, err
 		}
 		if salary.Salary > 0 {
 			salary.Salary = 1.0
