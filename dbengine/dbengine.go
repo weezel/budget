@@ -252,14 +252,14 @@ func GetSalaryCompensatedDebts(month time.Time) ([]DebtData, error) {
 
 // Yes, I recognize the functionality is a bit fugly but will fix it later.
 func GetMonthlyPurchasesByUser(username string, startMonth time.Time, endMonth time.Time) (
-	map[time.Time][]external.SpendingHistory,
+	[]external.SpendingHistory,
 	error,
 ) {
-	spending := make(map[time.Time][]external.SpendingHistory)
+	var spending []external.SpendingHistory = []external.SpendingHistory{}
 
 	stmt, err := dbConn.Prepare(MonthlyPurchasesByUserQuery)
 	if err != nil {
-		return map[time.Time][]external.SpendingHistory{}, err
+		return []external.SpendingHistory{}, err
 	}
 	defer func() {
 		err := stmt.Close()
@@ -271,7 +271,7 @@ func GetMonthlyPurchasesByUser(username string, startMonth time.Time, endMonth t
 	for iterMonth := startMonth; iterMonth.Before(endMonth) || iterMonth.Equal(endMonth); iterMonth = iterMonth.AddDate(0, 1, 0) {
 		res, err := stmt.Query(username, iterMonth.Format("2006-01"))
 		if err != nil {
-			return map[time.Time][]external.SpendingHistory{}, err
+			return []external.SpendingHistory{}, err
 		}
 		defer func() {
 			if err := res.Close(); err != nil {
@@ -286,7 +286,7 @@ func GetMonthlyPurchasesByUser(username string, startMonth time.Time, endMonth t
 				logger.Errorf("couldn't parse purchases by user: %s", err)
 				continue
 			}
-			spending[s.MonthYear] = append(spending[s.MonthYear], s)
+			spending = append(spending, s)
 		}
 	}
 	return spending, nil

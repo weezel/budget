@@ -434,7 +434,7 @@ func TestGetMonthlyPurchasesByUser(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    map[time.Time][]external.SpendingHistory
+		want    []external.SpendingHistory
 		wantErr bool
 	}{
 		{
@@ -444,26 +444,24 @@ func TestGetMonthlyPurchasesByUser(t *testing.T) {
 				startMonth: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
 				endMonth:   time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
 			},
-			map[time.Time][]external.SpendingHistory{
-				time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC): {
-					{
-						ID:        13,
-						MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
-						EventName: "lidl",
-						Spending:  1.0,
-					},
-					{
-						ID:        14,
-						MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
-						EventName: "lidl",
-						Spending:  2.0,
-					},
-					{
-						ID:        15,
-						MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
-						EventName: "lidl",
-						Spending:  4.0,
-					},
+			[]external.SpendingHistory{
+				{
+					ID:        13,
+					MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
+					EventName: "lidl",
+					Spending:  1.0,
+				},
+				{
+					ID:        14,
+					MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
+					EventName: "lidl",
+					Spending:  2.0,
+				},
+				{
+					ID:        15,
+					MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
+					EventName: "lidl",
+					Spending:  4.0,
 				},
 			},
 			false,
@@ -475,28 +473,24 @@ func TestGetMonthlyPurchasesByUser(t *testing.T) {
 				startMonth: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
 				endMonth:   time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
 			},
-			map[time.Time][]external.SpendingHistory{
-				time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC): {
-					{
-						ID:        2,
-						MonthYear: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
-						EventName: "lidl",
-						Spending:  2.0,
-					},
-					{
-						ID:        1,
-						MonthYear: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
-						EventName: "lidl",
-						Spending:  12.0,
-					},
+			[]external.SpendingHistory{
+				{
+					ID:        2,
+					MonthYear: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+					EventName: "lidl",
+					Spending:  2.0,
 				},
-				time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC): {
-					{
-						ID:        4,
-						MonthYear: time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
-						EventName: "lidl",
-						Spending:  9.0,
-					},
+				{
+					ID:        1,
+					MonthYear: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+					EventName: "lidl",
+					Spending:  12.0,
+				},
+				{
+					ID:        4,
+					MonthYear: time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
+					EventName: "lidl",
+					Spending:  9.0,
 				},
 			},
 			false,
