@@ -6,12 +6,12 @@ import (
 
 type SpendingHistory struct {
 	_         struct{}
-	ID        int64
-	Username  string
 	MonthYear time.Time
+	Username  string
+	EventName string
 	Spending  float64
 	Salary    float64
-	EventName string
+	ID        int64
 }
 
 type SpendingHTMLOutput struct {

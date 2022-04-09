@@ -7,9 +7,9 @@ import (
 )
 
 type TeleConfig struct {
-	ChannelId  int64
 	ApiKey     string
 	WorkingDir string
+	ChannelId  int64
 }
 
 type WebserverConfig struct {
@@ -18,8 +18,8 @@ type WebserverConfig struct {
 }
 
 type TomlConfig struct {
-	TeleConfig      TeleConfig
 	WebserverConfig WebserverConfig
+	TeleConfig      TeleConfig
 }
 
 func LoadConfig(filedata []byte) TomlConfig {

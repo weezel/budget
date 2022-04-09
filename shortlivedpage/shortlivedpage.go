@@ -15,9 +15,9 @@ var (
 )
 
 type ShortLivedPage struct {
-	TimeToLiveSeconds int64
 	StartTime         time.Time
 	HtmlPage          *[]byte
+	TimeToLiveSeconds int64
 }
 
 func cleaner() {

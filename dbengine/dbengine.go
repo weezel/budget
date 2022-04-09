@@ -19,19 +19,19 @@ var (
 )
 
 type DebtData struct {
+	Date     time.Time
 	Username string
 	Expanses float64
 	Owes     float64
 	Salary   float64
-	Date     time.Time
 }
 
 type BudgetRow struct {
-	ID           int64
+	Purchasedate time.Time
 	Username     string
 	Shopname     string
 	Category     string
-	Purchasedate time.Time
+	ID           int64
 	Price        float64
 }
 
