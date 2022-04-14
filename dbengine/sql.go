@@ -77,12 +77,11 @@ SELECT username, purchasedate, SUM(price) FROM budget
 	HAVING purchasedate strftime('%Y-%m', purchasedate) = ?
 	ORDER BY username, purchasedate;
 `
-const MonthlyPurchasesByUserQuery string = `
-SELECT id, purchasedate, shopname, price FROM budget
-	GROUP BY purchasedate, shopname, price
-	HAVING username = ?
-	AND strftime('%Y-%m', purchasedate) = ?
-	ORDER BY purchasedate, shopname, price;
+const MonthlyPurchasesQuery string = `
+SELECT id, username, purchasedate, shopname, price FROM budget
+	GROUP BY username, purchasedate, shopname, price
+	HAVING strftime('%Y-%m', purchasedate) = ?
+	ORDER BY username, purchasedate, shopname, price;
 `
 
 const DateRangeSpendingQuery string = `

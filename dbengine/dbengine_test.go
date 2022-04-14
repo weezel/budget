@@ -392,7 +392,7 @@ INSERT INTO salary (username, salary, recordtime) VALUES
 	}
 }
 
-func TestGetMonthlyPurchasesByUser(t *testing.T) {
+func TestGetMonthlyPurchases(t *testing.T) {
 	memDb, _ := sql.Open("sqlite3", ":memory:")
 	defer memDb.Close()
 
@@ -420,13 +420,12 @@ func TestGetMonthlyPurchasesByUser(t *testing.T) {
 	('alice', 'amazon', '', '2020-08-01', 128.0),
 	('alice', 'amazon', '', '2020-08-01',  32.0),
 	('tom',   'siwa',   '', '2021-08-01', 256.0),
-	('tom',   'siwa',   '', '2021-08-01', 512.0) ;`)
+	('tom',   'siwa',   '', '2021-08-01', 512.0);`)
 	if err != nil {
 		t.Fatalf("Unexpected error in SQL INSERT: %v", err)
 	}
 
 	type args struct {
-		username   string
 		startMonth time.Time
 		endMonth   time.Time
 	}
@@ -440,28 +439,37 @@ func TestGetMonthlyPurchasesByUser(t *testing.T) {
 		{
 			"One month",
 			args{
-				username:   "alice",
 				startMonth: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
 				endMonth:   time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
 			},
 			[]external.SpendingHistory{
 				{
 					ID:        13,
+					Username:  "alice",
 					MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
 					EventName: "lidl",
 					Spending:  1.0,
 				},
 				{
 					ID:        14,
+					Username:  "alice",
 					MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
 					EventName: "lidl",
 					Spending:  2.0,
 				},
 				{
 					ID:        15,
+					Username:  "alice",
 					MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
 					EventName: "lidl",
 					Spending:  4.0,
+				},
+				{
+					ID:        16,
+					Username:  "tom",
+					MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
+					EventName: "ikea",
+					Spending:  16.0,
 				},
 			},
 			false,
@@ -469,28 +477,44 @@ func TestGetMonthlyPurchasesByUser(t *testing.T) {
 		{
 			"Two months",
 			args{
-				username:   "alice",
 				startMonth: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
 				endMonth:   time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
 			},
 			[]external.SpendingHistory{
 				{
 					ID:        2,
+					Username:  "alice",
 					MonthYear: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
 					EventName: "lidl",
 					Spending:  2.0,
 				},
 				{
 					ID:        1,
+					Username:  "alice",
 					MonthYear: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
 					EventName: "lidl",
 					Spending:  12.0,
 				},
 				{
+					MonthYear: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+					Username:  "tom",
+					EventName: "lidl",
+					Spending:  10,
+					ID:        3,
+				},
+				{
 					ID:        4,
+					Username:  "alice",
 					MonthYear: time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
 					EventName: "lidl",
 					Spending:  9.0,
+				},
+				{
+					MonthYear: time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
+					Username:  "tom",
+					EventName: "lidl",
+					Spending:  15.4,
+					ID:        5,
 				},
 			},
 			false,
@@ -498,7 +522,7 @@ func TestGetMonthlyPurchasesByUser(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetMonthlyPurchasesByUser(tt.args.username, tt.args.startMonth, tt.args.endMonth)
+			got, err := GetMonthlyPurchases(tt.args.startMonth, tt.args.endMonth)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("%s: GetMonthlyPurchasesByUser() error = %v, wantErr %v",
 					tt.name,

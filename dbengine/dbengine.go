@@ -251,13 +251,13 @@ func GetSalaryCompensatedDebts(month time.Time) ([]DebtData, error) {
 }
 
 // Yes, I recognize the functionality is a bit fugly but will fix it later.
-func GetMonthlyPurchasesByUser(username string, startMonth time.Time, endMonth time.Time) (
+func GetMonthlyPurchases(startMonth time.Time, endMonth time.Time) (
 	[]external.SpendingHistory,
 	error,
 ) {
 	var spending []external.SpendingHistory = []external.SpendingHistory{}
 
-	stmt, err := dbConn.Prepare(MonthlyPurchasesByUserQuery)
+	stmt, err := dbConn.Prepare(MonthlyPurchasesQuery)
 	if err != nil {
 		return []external.SpendingHistory{}, err
 	}
@@ -269,7 +269,7 @@ func GetMonthlyPurchasesByUser(username string, startMonth time.Time, endMonth t
 	}()
 
 	for iterMonth := startMonth; iterMonth.Before(endMonth) || iterMonth.Equal(endMonth); iterMonth = iterMonth.AddDate(0, 1, 0) {
-		res, err := stmt.Query(username, iterMonth.Format("2006-01"))
+		res, err := stmt.Query(iterMonth.Format("2006-01"))
 		if err != nil {
 			return []external.SpendingHistory{}, err
 		}
@@ -282,10 +282,11 @@ func GetMonthlyPurchasesByUser(username string, startMonth time.Time, endMonth t
 		for res.Next() {
 			s := external.SpendingHistory{}
 
-			if err := res.Scan(&s.ID, &s.MonthYear, &s.EventName, &s.Spending); err != nil {
+			if err := res.Scan(&s.ID, &s.Username, &s.MonthYear, &s.EventName, &s.Spending); err != nil {
 				logger.Errorf("couldn't parse purchases by user: %s", err)
 				continue
 			}
+
 			spending = append(spending, s)
 		}
 	}

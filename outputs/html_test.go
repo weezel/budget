@@ -35,7 +35,7 @@ func TestHTML(t *testing.T) {
 						},
 						{
 							ID:        1,
-							Username:  "Dille",
+							Username:  "Rolle",
 							MonthYear: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
 							Spending:  20.5,
 							EventName: "pad thai",
@@ -85,51 +85,59 @@ func TestHTML(t *testing.T) {
     <col style="width:30px">
     <col style="width:120px">
     <col style="width:120px">
-    <col style="width:120px">
+    <col style="width:60px">
+    <col style="width:150px">
     <thead>
     <tr>
-        <th style="text-align:left">ID</th>
+        <th style="text-align:right">ID</th>
+        <th style="text-align:center">Käyttäjä</th>
         <th style="text-align:center">Aika</th>
-        <th style="text-align:right">Määrä</th>
+        <th style="text-align:left">Määrä</th>
         <th style="text-align:left">Kuvaus</th>
     </tr>
     </thead>
 
     <tbody>
     <tr>
-        <td style="text-align:left">0</td>
+        <td style="text-align:right">0</td>
+        <td style="text-align:center">Dille</td>
         <td style="text-align:center">01-10-2020</td>
-        <td style="text-align:right">10</td>
+        <td style="text-align:left">10</td>
         <td style="text-align:left">beer</td>
     </tr>
     <tr>
-        <td style="text-align:left">1</td>
+        <td style="text-align:right">1</td>
+        <td style="text-align:center">Rolle</td>
         <td style="text-align:center">01-10-2020</td>
-        <td style="text-align:right">20.5</td>
+        <td style="text-align:left">20.5</td>
         <td style="text-align:left">pad thai</td>
     </tr>
     <tr>
-        <td style="text-align:left">2</td>
+        <td style="text-align:right">2</td>
+        <td style="text-align:center">Dille</td>
         <td style="text-align:center">01-10-2020</td>
-        <td style="text-align:right">850.99</td>
+        <td style="text-align:left">850.99</td>
         <td style="text-align:left">shoes</td>
     </tr>
     <tr>
-        <td style="text-align:left">3</td>
+        <td style="text-align:right">3</td>
+        <td style="text-align:center">Dille</td>
         <td style="text-align:center">01-11-2020</td>
-        <td style="text-align:right">444.4</td>
+        <td style="text-align:left">444.4</td>
         <td style="text-align:left">moar beer</td>
     </tr>
     <tr>
-        <td style="text-align:left">4</td>
+        <td style="text-align:right">4</td>
+        <td style="text-align:center">Dille</td>
         <td style="text-align:center">01-11-2020</td>
-        <td style="text-align:right">555.5</td>
+        <td style="text-align:left">555.5</td>
         <td style="text-align:left">cat food</td>
     </tr>
     <tr>
-        <td style="text-align:left">5</td>
+        <td style="text-align:right">5</td>
+        <td style="text-align:center">Dille</td>
         <td style="text-align:center">01-11-2020</td>
-        <td style="text-align:right">666.6</td>
+        <td style="text-align:left">666.6</td>
         <td style="text-align:left">dog food</td>
     </tr>
     </tbody>

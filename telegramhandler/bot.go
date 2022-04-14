@@ -68,8 +68,7 @@ func getPurchasesData(username string, hostname string, tokenized []string) stri
 	startMonth := utils.GetDate(tokenized[1:], "01-2006")
 	endMonth := utils.GetDate(tokenized[2:], "01-2006")
 
-	spending, err := dbengine.GetMonthlyPurchasesByUser(
-		username, startMonth, endMonth)
+	spending, err := dbengine.GetMonthlyPurchases(startMonth, endMonth)
 	if err != nil {
 		logger.Error(err)
 		return "Kulutuksen hakemisessa ongelmaa"
