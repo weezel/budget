@@ -16,6 +16,9 @@ build: test lint
 lint:
 	golangci-lint run ./...
 
+escape-analysis:
+	$(GO) build -gcflags="-m" 2>&1
+
 docker-build:
 	$(DOCKER) build --rm --target app -t budget-test .
 
