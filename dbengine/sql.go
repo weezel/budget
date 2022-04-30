@@ -78,7 +78,7 @@ SELECT username, purchasedate, SUM(price) FROM budget
 	ORDER BY username, purchasedate;
 `
 const MonthlyPurchasesQuery string = `
-SELECT id, username, purchasedate, shopname, price FROM budget
+SELECT id, username, strftime('%Y-%m', purchasedate), shopname, price FROM budget
 	GROUP BY username, purchasedate, shopname, price
 	HAVING strftime('%Y-%m', purchasedate) = ?
 	ORDER BY username, purchasedate, shopname, price;
