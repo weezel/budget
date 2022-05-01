@@ -7,11 +7,18 @@ linters-settings:
     disabled-checks:
       - ifElseChain
       - singleCaseSwitch
+  govet:
+    check-shadowing: true
 linters:
   enable:
-    - gosec
-    - maligned
+    - dupl
+    - errorlint
     - gocritic
+    - gosec
+    - govet
+    - maligned
+    - sqlclosecheck
+issues:
 output:
   # Sort results by: filepath, line and column.
   sort-results: true
