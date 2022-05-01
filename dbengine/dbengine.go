@@ -119,6 +119,7 @@ func InsertSalary(username string, salary float64, recordTime time.Time) bool {
 		logger.Errorf("preparing salary insert statement failed: %v", err)
 		return false
 	}
+	defer stmt.Close()
 
 	res, err := stmt.Exec(
 		sql.Named("username", username),
@@ -147,9 +148,9 @@ func InsertPurchase(
 ) error {
 	stmt, err := dbConn.Prepare(InsertShoppingQuery)
 	if err != nil {
-		logger.Errorf("preparing shopping insert statement failed: %v", err)
-		return errors.New("Virhe, ei onnistuttu yhdistämään kantaan")
+		return err
 	}
+	defer stmt.Close()
 
 	res, err := stmt.Exec(
 		sql.Named("username", username),
@@ -163,9 +164,9 @@ func InsertPurchase(
 	}
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
-		logger.Errorf("getting shopping rows failed: %v", err)
-		return errors.New("Virhe, ei saatu ostosdataa")
+		return err
 	}
+
 	logger.Infof("Wrote %d shopping rows", rowsAffected)
 	return nil
 }
@@ -183,11 +184,7 @@ func GetSalaryCompensatedDebts(month time.Time) ([]DebtData, error) {
 	if err != nil {
 		return []DebtData{}, err
 	}
-	defer func() {
-		if err := res.Close(); err != nil {
-			logger.Errorf("couldn't close file handle in GetSalaryCompensatedDebts: %s", err)
-		}
-	}()
+	defer res.Close()
 
 	for res.Next() {
 		d := DebtData{}
@@ -255,29 +252,21 @@ func GetMonthlyPurchases(startMonth time.Time, endMonth time.Time) (
 	[]external.SpendingHistory,
 	error,
 ) {
+	var err error
 	var spending []external.SpendingHistory = []external.SpendingHistory{}
 
 	stmt, err := dbConn.Prepare(MonthlyPurchasesQuery)
 	if err != nil {
 		return []external.SpendingHistory{}, err
 	}
-	defer func() {
-		err := stmt.Close()
-		if err != nil {
-			logger.Errorf("couldn't close purchases by user statement: %s", err)
-		}
-	}()
+	defer stmt.Close()
 
 	for iterMonth := startMonth; iterMonth.Before(endMonth) || iterMonth.Equal(endMonth); iterMonth = iterMonth.AddDate(0, 1, 0) {
 		res, err := stmt.Query(iterMonth.Format("2006-01"))
 		if err != nil {
 			return []external.SpendingHistory{}, err
 		}
-		defer func() {
-			if err := res.Close(); err != nil {
-				logger.Errorf("couldn't close file handle in GetMonthlyPurchasesByUser: %s", err)
-			}
-		}()
+		defer res.Close()
 
 		for res.Next() {
 			s := external.SpendingHistory{}
@@ -304,6 +293,7 @@ func GetMonthlyData(startMonth time.Time, endMonth time.Time) (
 	[]external.SpendingHistory,
 	error,
 ) {
+	var err error
 	var spending []external.SpendingHistory = []external.SpendingHistory{}
 
 	stmt, err := dbConn.Prepare(DateRangeSpendingQuery)
@@ -311,12 +301,7 @@ func GetMonthlyData(startMonth time.Time, endMonth time.Time) (
 		errMsg := fmt.Sprintf("Failed to prepare purchases by user query: %v", err)
 		return []external.SpendingHistory{}, errors.New(errMsg)
 	}
-	defer func() {
-		err := stmt.Close()
-		if err != nil {
-			logger.Errorf("Couldn't close data gathering by user statement: %s", err)
-		}
-	}()
+	defer stmt.Close()
 
 	res, err := stmt.Query(
 		startMonth.Format("2006-01-02"),
@@ -325,11 +310,7 @@ func GetMonthlyData(startMonth time.Time, endMonth time.Time) (
 		errMsg := fmt.Sprintf("Couldn't get monthly data: %v", err)
 		return []external.SpendingHistory{}, errors.New(errMsg)
 	}
-	defer func() {
-		if err := res.Close(); err != nil {
-			logger.Errorf("couldn't close file handle: %s", err)
-		}
-	}()
+	defer res.Close()
 
 	for res.Next() {
 		s := external.SpendingHistory{}
@@ -337,7 +318,7 @@ func GetMonthlyData(startMonth time.Time, endMonth time.Time) (
 		var salaryTmp sql.NullFloat64
 
 		var t string
-		if err := res.Scan(&s.Username, &t, &spendingTmp, &salaryTmp); err != nil {
+		if err = res.Scan(&s.Username, &t, &spendingTmp, &salaryTmp); err != nil {
 			logger.Errorf("couldn't parse purchases for user: %s", err)
 			continue
 		}
@@ -377,11 +358,7 @@ func getSalaryDataByUser(username string, month time.Time) (float64, error) {
 	if err != nil {
 		return math.NaN(), err
 	}
-	defer func() {
-		if err := res.Close(); err != nil {
-			logger.Errorf("couldn't close file handle in getSalaryDataByUser: %s", err)
-		}
-	}()
+	defer res.Close()
 
 	var salary float64
 	for res.Next() {
@@ -411,11 +388,7 @@ func GetSalariesByMonthRange(startMonth time.Time, endMonth time.Time) ([]DebtDa
 	if err != nil {
 		return []DebtData{}, err
 	}
-	defer func() {
-		if err := res.Close(); err != nil {
-			logger.Errorf("couldn't close file handle in GetSalariesByMonth: %s", err)
-		}
-	}()
+	defer res.Close()
 
 	var salaries []DebtData = make([]DebtData, 0)
 	for res.Next() {

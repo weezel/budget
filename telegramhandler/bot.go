@@ -265,7 +265,7 @@ func SendTelegram(
 		msg.ParseMode = tgbotapi.ModeMarkdown
 	}
 	if _, err := bot.Send(msg); err != nil {
-		return fmt.Errorf("sending to channel failed %s", err)
+		return err
 	}
 	return nil
 }
@@ -302,7 +302,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 			}
 
 			shopName := tokenized[1]
-			msg := handlePurchase(shopName, lastElem, username, tokenized)
+			msg = handlePurchase(shopName, lastElem, username, tokenized)
 			outMsg := tgbotapi.NewMessage(channelId, msg)
 			if err = SendTelegram(bot, outMsg, false); err != nil {
 				logger.Error(err)
@@ -313,7 +313,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 				continue
 			}
 
-			msg := getPurchasesData(username, hostname, tokenized)
+			msg = getPurchasesData(username, hostname, tokenized)
 			outMsg := tgbotapi.NewMessage(channelId, msg)
 			if err = SendTelegram(bot, outMsg, false); err != nil {
 				logger.Error(err)
@@ -324,7 +324,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 				continue
 			}
 
-			msg := getStatsTimeSpan(hostname, tokenized)
+			msg = getStatsTimeSpan(hostname, tokenized)
 			outMsg := tgbotapi.NewMessage(channelId, msg)
 			if err = SendTelegram(bot, outMsg, false); err != nil {
 				logger.Error(err)
@@ -335,7 +335,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 				continue
 			}
 
-			msg := handleSalaryInsert(username, lastElem, tokenized)
+			msg = handleSalaryInsert(username, lastElem, tokenized)
 			outMsg := tgbotapi.NewMessage(channelId, msg)
 			if err = SendTelegram(bot, outMsg, false); err != nil {
 				logger.Error(err)
@@ -346,7 +346,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 				continue
 			}
 
-			msg := handleGetSalaries(tokenized)
+			msg = handleGetSalaries(tokenized)
 			outMsg := tgbotapi.NewMessage(channelId, msg)
 			if err = SendTelegram(bot, outMsg, false); err != nil {
 				logger.Error(err)
@@ -357,7 +357,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 				continue
 			}
 
-			msg, err := handleRemovePurchase(username, tokenized)
+			msg, err = handleRemovePurchase(username, tokenized)
 			if err != nil {
 				displayHelp(username, channelId, bot)
 				continue

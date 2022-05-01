@@ -812,6 +812,8 @@ func TestInsertPurchase(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
+			defer rows.Close()
+
 			for rows.Next() {
 				var id int64
 				var username string
