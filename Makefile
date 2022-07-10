@@ -29,6 +29,10 @@ obsd:
 	CGO_ENABLED=$(CGO_ENABLED) GOOS=openbsd GOARCH=$(GOARCH) \
 	     $(GO) build $(LDFLAGS) -o $(BINARY)_openbsd_$(GOARCH)
 
+coverage:
+	go test -coverprofile=coverage.out ./...
+	go tool cover -html=coverage.out -o coverage.html
+
 test:
 	go test ./...
 
