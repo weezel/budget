@@ -9,7 +9,7 @@ hand? Takes time (i.e insertion becomes trickier)
 and I wanted to have something functional quickly.
 */
 const DbCreationSchema string = `
-CREATE TABLE budget(
+CREATE TABLE IF NOT EXISTS budget(
 	id INTEGER PRIMARY KEY,
 	username TEXT NOT NULL,
 	shopname TEXT NOT NULL,
@@ -18,7 +18,7 @@ CREATE TABLE budget(
 	price REAL NOT NULL
 );
 
-CREATE TABLE salary(
+CREATE TABLE IF NOT EXISTS salary(
 	id INTEGER PRIMARY KEY,
 	username TEXT NOT NULL,
 	salary REAL NOT NULL,
@@ -52,7 +52,7 @@ INSERT INTO salary(
 );`
 
 const PurchasesQuery string = `
-SELECT username, purchasedate, SUM(price) FROM budget
+SELECT username, purchasedate, SUM(price) AS expenses FROM budget
 	GROUP BY purchasedate, username
 	HAVING strftime('%Y-%m', purchasedate) = ?
 	ORDER BY username;
@@ -66,31 +66,35 @@ SELECT salary FROM salary
 
 const SalariesQuery string = `
 SELECT username, salary, recordtime FROM salary
-	WHERE recordtime BETWEEN ? AND ?
-	GROUP BY username, recordtime
+	WHERE recordtime BETWEEN ? AND DATE(?, 'start of month', '+1 month', '-1 day')
+	GROUP BY username, recordtime, salary
 	ORDER BY username, recordtime;
 `
 
+// TODO Use this instead something?
 const MonthlySpendingQuery string = `
-SELECT username, purchasedate, SUM(price) FROM budget
+SELECT username, purchasedate, SUM(price) AS expenses FROM budget
 	GROUP BY purchasedate, username
 	HAVING purchasedate strftime('%Y-%m', purchasedate) = ?
 	ORDER BY username, purchasedate;
 `
+
 const MonthlyPurchasesQuery string = `
-SELECT id, username, strftime('%Y-%m', purchasedate), shopname, price FROM budget
+SELECT id, username, purchasedate, shopname AS event, price AS expenses FROM budget
 	GROUP BY username, purchasedate, shopname, price
-	HAVING strftime('%Y-%m', purchasedate) = ?
+	HAVING strftime('%Y-%m-%d', purchasedate) = ?
 	ORDER BY username, purchasedate, shopname, price;
 `
 
 const DateRangeSpendingQuery string = `
-SELECT b.username, strftime('%Y-%m', b.purchasedate), sum(price) AS expanses, s.salary FROM budget AS b
+SELECT b.username, b.purchasedate AS purchasedate, SUM(price) AS expenses, s.salary FROM budget AS b
         LEFT JOIN salary AS s ON b.username = s.username
 		AND strftime('%Y-%m-%d', s.recordtime) = strftime('%Y-%m-%d', b.purchasedate)
 	WHERE b.purchasedate BETWEEN ? AND DATE(?, 'start of month', '+1 month', '-1 day')
+		AND s.recordtime NOT NULL
+		AND b.purchasedate NOT NULL
 	GROUP BY b.username, b.purchasedate
-	ORDER BY b.username, b.purchasedate, expanses;
+	ORDER BY b.username, b.purchasedate, expenses;
 `
 
 const GetSpendingByIDQuery string = `

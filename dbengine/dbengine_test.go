@@ -1,14 +1,14 @@
 package dbengine
 
 import (
-	"database/sql"
+	"context"
 	"math"
 	"reflect"
 	"testing"
 	"time"
-	"weezel/budget/external"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -16,14 +16,30 @@ const (
 	floatDelta float64 = 1e-2
 )
 
+func clearTable(t *testing.T, dbRef *sqlx.DB) {
+	_, err := dbRef.Exec(`DROP TABLE budget;`)
+	if err != nil {
+		t.Error(err)
+	}
+	_, err = dbRef.Exec(`DROP TABLE salary;`)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
 func Test_getSalaryDataByUser(t *testing.T) {
-	memDb, _ := sql.Open("sqlite3", ":memory:")
-	defer memDb.Close()
+	ctx := context.Background()
+	memDB, err := New(":memory:")
+	if err != nil {
+		t.Error(err)
+	}
 
-	UpdateDBReference(memDb)
-	CreateSchema(memDb)
+	err = CreateSchema(ctx)
+	if err != nil {
+		t.Error(err)
+	}
 
-	_, err := memDb.Exec(`
+	_, err = memDB.Exec(`
 INSERT INTO salary (username, salary, recordtime) VALUES
 	('alice', 2400.0, '2020-06-01'),
 	('tom',    666.6, '2020-06-01'),
@@ -51,7 +67,7 @@ INSERT INTO salary (username, salary, recordtime) VALUES
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := getSalaryDataByUser(tt.args.username, tt.args.month)
+			got, err := getSalaryDataByUser(ctx, tt.args.username, tt.args.month)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("%s: getSalaryDataByUser() error = %v, wantErr %v",
 					tt.name,
@@ -67,16 +83,20 @@ INSERT INTO salary (username, salary, recordtime) VALUES
 			}
 		})
 	}
+
+	clearTable(t, memDB)
 }
 
 func TestGetSalaryCompensatedDebts(t *testing.T) {
-	memDb, _ := sql.Open("sqlite3", ":memory:")
-	defer memDb.Close()
+	ctx := context.Background()
+	memDB, err := New(":memory:")
+	if err != nil {
+		t.Error(err)
+	}
 
-	UpdateDBReference(memDb)
-	CreateSchema(memDb)
+	CreateSchema(ctx)
 
-	_, err := memDb.Exec(`
+	_, err = memDB.Exec(`
 INSERT INTO salary (username, salary, recordtime) VALUES
 	('alice',  128.0, '2020-06-01'),
 	('tom',    512.0, '2020-06-01'),
@@ -92,7 +112,7 @@ INSERT INTO salary (username, salary, recordtime) VALUES
 		t.Fatalf("Unexpected error in SQL INSERT: %v", err)
 	}
 
-	_, err = memDb.Exec(`
+	_, err = memDB.Exec(`
 INSERT INTO budget (username, shopname, category, purchasedate, price) VALUES
 	('alice', 'empty',     '', '2020-06-01',    0.0),
 	('tom',   'ikea',      '', '2020-06-01',    8.0),
@@ -127,18 +147,18 @@ INSERT INTO budget (username, shopname, category, purchasedate, price) VALUES
 			args{time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)},
 			[]DebtData{
 				{
-					Username: "alice",
-					Expanses: 0.0,
-					Owes:     37.894737,
-					Salary:   900.0,
-					Date:     time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+					Username:     "alice",
+					Expenses:     0.0,
+					Owes:         37.894737,
+					Salary:       900.0,
+					PurchaseDate: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 				},
 				{
-					Username: "tom",
-					Expanses: 80.0,
-					Owes:     0.0,
-					Salary:   1000.0,
-					Date:     time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
+					Username:     "tom",
+					Expenses:     80.0,
+					Owes:         0.0,
+					Salary:       1000.0,
+					PurchaseDate: time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC),
 				},
 			},
 			false,
@@ -148,18 +168,18 @@ INSERT INTO budget (username, shopname, category, purchasedate, price) VALUES
 			args{time.Date(2021, 2, 1, 0, 0, 0, 0, time.UTC)},
 			[]DebtData{
 				{
-					Username: "alice",
-					Expanses: 80.0,
-					Owes:     0.0,
-					Salary:   900.0,
-					Date:     time.Date(2021, 2, 1, 0, 0, 0, 0, time.UTC),
+					Username:     "alice",
+					Expenses:     80.0,
+					Owes:         0.0,
+					Salary:       900.0,
+					PurchaseDate: time.Date(2021, 2, 1, 0, 0, 0, 0, time.UTC),
 				},
 				{
-					Username: "tom",
-					Expanses: 0.0,
-					Owes:     42.105263,
-					Salary:   1000.0,
-					Date:     time.Date(2021, 2, 1, 0, 0, 0, 0, time.UTC),
+					Username:     "tom",
+					Expenses:     0.0,
+					Owes:         42.105263,
+					Salary:       1000.0,
+					PurchaseDate: time.Date(2021, 2, 1, 0, 0, 0, 0, time.UTC),
 				},
 			},
 			false,
@@ -169,18 +189,18 @@ INSERT INTO budget (username, shopname, category, purchasedate, price) VALUES
 			args{time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC)},
 			[]DebtData{
 				{
-					Username: "tom",
-					Expanses: 60.0,
-					Owes:     0.0,
-					Salary:   900.0,
-					Date:     time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
+					Username:     "tom",
+					Expenses:     60.0,
+					Owes:         0.0,
+					Salary:       900.0,
+					PurchaseDate: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
 				},
 				{
-					Username: "alice",
-					Expanses: 40.0,
-					Owes:     12.631579,
-					Salary:   1000.0,
-					Date:     time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
+					Username:     "alice",
+					Expenses:     40.0,
+					Owes:         12.631579,
+					Salary:       1000.0,
+					PurchaseDate: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
 				},
 			},
 			false,
@@ -190,18 +210,18 @@ INSERT INTO budget (username, shopname, category, purchasedate, price) VALUES
 			args{time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC)},
 			[]DebtData{
 				{
-					Username: "tom",
-					Expanses: 20.0,
-					Owes:     29.411765,
-					Salary:   700.0,
-					Date:     time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC),
+					Username:     "tom",
+					Expenses:     20.0,
+					Owes:         29.411765,
+					Salary:       700.0,
+					PurchaseDate: time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC),
 				},
 				{
-					Username: "alice",
-					Expanses: 100.0,
-					Owes:     0.0,
-					Salary:   1000.0,
-					Date:     time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC),
+					Username:     "alice",
+					Expenses:     100.0,
+					Owes:         0.0,
+					Salary:       1000.0,
+					PurchaseDate: time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC),
 				},
 			},
 			false,
@@ -209,7 +229,7 @@ INSERT INTO budget (username, shopname, category, purchasedate, price) VALUES
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetSalaryCompensatedDebts(tt.args.month)
+			got, err := GetSalaryCompensatedDebts(ctx, tt.args.month)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("%s: GetSalaryCompensatedDebts() error = %+v, wantErr %+v",
 					tt.name,
@@ -227,20 +247,20 @@ INSERT INTO budget (username, shopname, category, purchasedate, price) VALUES
 						tt.want[idx].Username)
 				}
 
-				if !got[idx].Date.Equal(tt.want[idx].Date) {
+				if !got[idx].PurchaseDate.Equal(tt.want[idx].PurchaseDate) {
 					t.Errorf("%s: Date[%d]: got=%s, expected=%s",
 						tt.name,
 						idx,
-						got[idx].Date,
-						tt.want[idx].Date)
+						got[idx].PurchaseDate,
+						tt.want[idx].PurchaseDate)
 				}
 
-				if math.Abs(got[idx].Expanses-tt.want[idx].Expanses) > floatDelta {
-					t.Errorf("%s: Expanses[%d]: got=%f, expected=%f",
+				if math.Abs(got[idx].Expenses-tt.want[idx].Expenses) > floatDelta {
+					t.Errorf("%s: Expenses[%d]: got=%f, expected=%f",
 						tt.name,
 						idx,
-						got[idx].Expanses,
-						tt.want[idx].Expanses)
+						got[idx].Expenses,
+						tt.want[idx].Expenses)
 				}
 
 				if math.Abs(got[idx].Salary-tt.want[idx].Salary) > floatDelta {
@@ -261,16 +281,20 @@ INSERT INTO budget (username, shopname, category, purchasedate, price) VALUES
 			}
 		})
 	}
+
+	clearTable(t, memDB)
 }
 
 func TestGetSalariesByMonth(t *testing.T) {
-	memDb, _ := sql.Open("sqlite3", ":memory:")
-	defer memDb.Close()
+	ctx := context.Background()
+	memDB, err := New(":memory:")
+	if err != nil {
+		t.Error(err)
+	}
 
-	UpdateDBReference(memDb)
-	CreateSchema(memDb)
+	CreateSchema(ctx)
 
-	_, err := memDb.Exec(`
+	_, err = memDB.Exec(`
 INSERT INTO salary (username, salary, recordtime) VALUES
 	('alice',    8.0,  '2020-01-01'),
 	('tom',      4.0,  '2020-01-01'),
@@ -283,8 +307,8 @@ INSERT INTO salary (username, salary, recordtime) VALUES
 		t.Fatalf("Unexpected error in SQL INSERT: %v", err)
 	}
 	type args struct {
-		startMonth time.Time
-		endMonth   time.Time
+		startTime time.Time
+		endTime   time.Time
 	}
 	tests := []struct {
 		name    string
@@ -294,79 +318,89 @@ INSERT INTO salary (username, salary, recordtime) VALUES
 	}{
 		{
 			"Get February salaries",
-			args{time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
-				time.Date(2020, 3, 1, 0, 0, 0, 0, time.UTC)},
+			args{
+				time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
+				time.Date(2020, 2, 29, 0, 0, 0, 0, time.UTC),
+			},
 			[]DebtData{},
 			false,
 		},
 		{
 			"Get June salaries",
-			args{time.Date(2020, 6, 1, 0, 0, 0, 0, time.UTC),
-				time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC)},
+			args{
+				time.Date(2020, 6, 1, 0, 0, 0, 0, time.UTC),
+				time.Date(2020, 6, 30, 0, 0, 0, 0, time.UTC),
+			},
 			[]DebtData{
 				{
-					Username: "alice",
-					Salary:   1.0,
-					Date:     time.Date(2020, 6, 1, 0, 0, 0, 0, time.UTC),
+					Username:   "alice",
+					Salary:     128.0,
+					SalaryDate: time.Date(2020, 6, 1, 0, 0, 0, 0, time.UTC),
 				},
 			},
 			false,
 		},
 		{
 			"Get July salaries",
-			args{time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
-				time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC)},
+			args{
+				time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
+				time.Date(2020, 7, 31, 0, 0, 0, 0, time.UTC),
+			},
 			[]DebtData{
 				{
-					Username: "alice",
-					Salary:   1.0,
-					Date:     time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
+					Username:   "alice",
+					Salary:     512.0,
+					SalaryDate: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
 				},
 				{
-					Username: "tom",
-					Salary:   1.0,
-					Date:     time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
+					Username:   "tom",
+					Salary:     256.0,
+					SalaryDate: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
 				},
 			},
 			false,
 		},
 		{
 			"Get August salaries",
-			args{time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC),
-				time.Date(2020, 9, 1, 0, 0, 0, 0, time.UTC)},
+			args{
+				time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC),
+				time.Date(2020, 8, 30, 0, 0, 0, 0, time.UTC),
+			},
 			[]DebtData{
 				{
-					Username: "alice",
-					Salary:   0.0,
-					Date:     time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC),
+					Username:   "alice",
+					Salary:     0.0,
+					SalaryDate: time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC),
 				},
 				{
-					Username: "tom",
-					Salary:   1.0,
-					Date:     time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC),
+					Username:   "tom",
+					Salary:     3840.0,
+					SalaryDate: time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC),
 				},
 			},
 			false,
 		},
 		{
 			"Get half year salaries from Jan to Jun",
-			args{time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
-				time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC)},
+			args{
+				time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+				time.Date(2020, 6, 30, 0, 0, 0, 0, time.UTC),
+			},
 			[]DebtData{
 				{
-					Username: "alice",
-					Salary:   1.0,
-					Date:     time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+					Username:   "alice",
+					Salary:     8.0,
+					SalaryDate: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
 				},
 				{
-					Username: "alice",
-					Salary:   1.0,
-					Date:     time.Date(2020, 6, 1, 0, 0, 0, 0, time.UTC),
+					Username:   "alice",
+					Salary:     128.0,
+					SalaryDate: time.Date(2020, 6, 1, 0, 0, 0, 0, time.UTC),
 				},
 				{
-					Username: "tom",
-					Salary:   1.0,
-					Date:     time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
+					Username:   "tom",
+					Salary:     4.0,
+					SalaryDate: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
 				},
 			},
 			false,
@@ -374,32 +408,36 @@ INSERT INTO salary (username, salary, recordtime) VALUES
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetSalariesByMonthRange(tt.args.startMonth, tt.args.endMonth)
+			got, err := GetSalariesByMonthRange(ctx, tt.args.startTime, tt.args.endTime)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("%s: GetSalariesByMonth() error = %v, wantErr %v",
-					tt.name,
-					err,
-					tt.wantErr)
+				t.Errorf("%s: GetSalariesByMonthRange() error = %v, wantErr %v",
+					tt.name, err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("%s: GetSalariesByMonth() = %v, want %v",
-					tt.name,
-					got,
-					tt.want)
+				t.Errorf("%s: GetSalariesByMonthRange() = %#v, want %#v",
+					tt.name, got, tt.want)
 			}
+			// if diff := cmp.Diff(got, tt.want); diff != "" {
+			// 	t.Errorf("%s: GetSalariesByMonthRange() mismatch:\n%s",
+			// 		tt.name, diff)
+			// }
 		})
 	}
+
+	clearTable(t, memDB)
 }
 
 func TestGetMonthlyPurchases(t *testing.T) {
-	memDb, _ := sql.Open("sqlite3", ":memory:")
-	defer memDb.Close()
+	ctx := context.Background()
+	memDB, err := New(":memory:")
+	if err != nil {
+		t.Error(err)
+	}
 
-	UpdateDBReference(memDb)
-	CreateSchema(memDb)
+	CreateSchema(ctx)
 
-	_, err := memDb.Exec(`
+	_, err = memDB.Exec(`
 	INSERT INTO budget (username, shopname, category, purchasedate, price) VALUES
 	('alice', 'lidl',   '', '2020-01-01',  12.0),
 	('alice', 'lidl',   '', '2020-01-01',   2.0),
@@ -433,7 +471,7 @@ func TestGetMonthlyPurchases(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    []external.SpendingHistory
+		want    []SpendingHistory
 		wantErr bool
 	}{
 		{
@@ -442,34 +480,34 @@ func TestGetMonthlyPurchases(t *testing.T) {
 				startMonth: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
 				endMonth:   time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
 			},
-			[]external.SpendingHistory{
+			[]SpendingHistory{
 				{
 					ID:        13,
 					Username:  "alice",
 					MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
 					EventName: "lidl",
-					Spending:  1.0,
+					Expenses:  1.0,
 				},
 				{
 					ID:        14,
 					Username:  "alice",
 					MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
 					EventName: "lidl",
-					Spending:  2.0,
+					Expenses:  2.0,
 				},
 				{
 					ID:        15,
 					Username:  "alice",
 					MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
 					EventName: "lidl",
-					Spending:  4.0,
+					Expenses:  4.0,
 				},
 				{
 					ID:        16,
 					Username:  "tom",
 					MonthYear: time.Date(2020, 7, 1, 0, 0, 0, 0, time.UTC),
 					EventName: "ikea",
-					Spending:  16.0,
+					Expenses:  16.0,
 				},
 			},
 			false,
@@ -480,26 +518,26 @@ func TestGetMonthlyPurchases(t *testing.T) {
 				startMonth: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
 				endMonth:   time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
 			},
-			[]external.SpendingHistory{
+			[]SpendingHistory{
 				{
 					ID:        2,
 					Username:  "alice",
 					MonthYear: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
 					EventName: "lidl",
-					Spending:  2.0,
+					Expenses:  2.0,
 				},
 				{
 					ID:        1,
 					Username:  "alice",
 					MonthYear: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
 					EventName: "lidl",
-					Spending:  12.0,
+					Expenses:  12.0,
 				},
 				{
 					MonthYear: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
 					Username:  "tom",
 					EventName: "lidl",
-					Spending:  10,
+					Expenses:  10,
 					ID:        3,
 				},
 				{
@@ -507,13 +545,13 @@ func TestGetMonthlyPurchases(t *testing.T) {
 					Username:  "alice",
 					MonthYear: time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
 					EventName: "lidl",
-					Spending:  9.0,
+					Expenses:  9.0,
 				},
 				{
 					MonthYear: time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
 					Username:  "tom",
 					EventName: "lidl",
-					Spending:  15.4,
+					Expenses:  15.4,
 					ID:        5,
 				},
 			},
@@ -522,31 +560,35 @@ func TestGetMonthlyPurchases(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetMonthlyPurchases(tt.args.startMonth, tt.args.endMonth)
+			got, err := GetMonthlyPurchases(ctx, tt.args.startMonth, tt.args.endMonth)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("%s: GetMonthlyPurchasesByUser() error = %v, wantErr %v",
+				t.Errorf("%s: GetMonthlyPurchases() error = %v, wantErr %v",
 					tt.name,
 					err,
 					tt.wantErr)
 				return
 			}
 			if diff := cmp.Diff(tt.want, got); diff != "" {
-				t.Errorf("%s: GetMonthlyPurchasesByUser() mismatch:\n%s",
+				t.Errorf("%s: GetMonthlyPurchases() mismatch:\n%s",
 					tt.name,
 					diff)
 			}
 		})
 	}
+
+	clearTable(t, memDB)
 }
 
 func TestGetMonthlyData(t *testing.T) {
-	memDb, _ := sql.Open("sqlite3", ":memory:")
-	defer memDb.Close()
+	ctx := context.Background()
+	memDB, err := New("kakka.db")
+	if err != nil {
+		t.Error(err)
+	}
 
-	UpdateDBReference(memDb)
-	CreateSchema(memDb)
+	CreateSchema(ctx)
 
-	_, err := memDb.Exec(`
+	_, err = memDB.Exec(`
 	INSERT INTO budget (username, shopname, category, purchasedate, price) VALUES
 	('alice', 'lidl',   '', '2020-01-01',  12.0),
 	('alice', 'lidl',   '', '2020-01-01',   2.0),
@@ -570,7 +612,7 @@ func TestGetMonthlyData(t *testing.T) {
 		t.Fatalf("Unexpected error in SQL INSERT: %v", err)
 	}
 
-	_, err = memDb.Exec(`
+	_, err = memDB.Exec(`
 	INSERT INTO salary (username, salary, recordtime) VALUES
 	('alice', 2001.0, '2020-01-01'),
 	('alice', 2002.0, '2020-02-01'),
@@ -591,7 +633,7 @@ func TestGetMonthlyData(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    []external.SpendingHistory
+		want    []SpendingHistory
 		wantErr bool
 	}{
 		{
@@ -600,12 +642,12 @@ func TestGetMonthlyData(t *testing.T) {
 				startMonth: time.Date(2020, 6, 1, 0, 0, 0, 0, time.UTC),
 				endMonth:   time.Date(2020, 6, 1, 0, 0, 0, 0, time.UTC),
 			},
-			want: []external.SpendingHistory{
+			want: []SpendingHistory{
 				{
 					ID:        0,
 					Username:  "tom",
 					MonthYear: time.Date(2020, 6, 1, 0, 0, 0, 0, time.UTC),
-					Spending:  8.0,
+					Expenses:  8.0,
 					Salary:    1606.0,
 				},
 			},
@@ -617,43 +659,43 @@ func TestGetMonthlyData(t *testing.T) {
 				startMonth: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
 				endMonth:   time.Date(2020, 3, 1, 0, 0, 0, 0, time.UTC),
 			},
-			want: []external.SpendingHistory{
+			want: []SpendingHistory{
 				{
 					ID:        0,
 					Username:  "alice",
 					MonthYear: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
-					Spending:  14.0,
+					Expenses:  14.0,
 					Salary:    2001,
 				},
 				{
 					Username:  "alice",
 					MonthYear: time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
-					Spending:  9,
+					Expenses:  9,
 					Salary:    2002.0,
 				},
 				{
 					Username:  "alice",
 					MonthYear: time.Date(2020, 3, 1, 0, 0, 0, 0, time.UTC),
-					Spending:  33.46,
+					Expenses:  33.46,
 					Salary:    2003.0,
 				},
 				{
 					ID:        0,
 					Username:  "tom",
 					MonthYear: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
-					Spending:  10,
+					Expenses:  10,
 					Salary:    1601.0,
 				},
 				{
 					Username:  "tom",
 					MonthYear: time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
-					Spending:  15.4,
+					Expenses:  15.4,
 					Salary:    1602.0,
 				},
 				{
 					Username:  "tom",
 					MonthYear: time.Date(2020, 3, 1, 0, 0, 0, 0, time.UTC),
-					Spending:  4.4,
+					Expenses:  4.4,
 					Salary:    1603.0,
 				},
 			},
@@ -665,12 +707,12 @@ func TestGetMonthlyData(t *testing.T) {
 				startMonth: time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC),
 				endMonth:   time.Date(2020, 9, 1, 0, 0, 0, 0, time.UTC),
 			},
-			want: []external.SpendingHistory{
+			want: []SpendingHistory{
 				{
 					ID:        0,
 					Username:  "tom",
 					MonthYear: time.Date(2020, 8, 1, 0, 0, 0, 0, time.UTC),
-					Spending:  768.0,
+					Expenses:  768.0,
 					Salary:    1608.0,
 				},
 			},
@@ -679,7 +721,7 @@ func TestGetMonthlyData(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GetMonthlyData(tt.args.startMonth, tt.args.endMonth)
+			got, err := GetMonthlyData(ctx, tt.args.startMonth, tt.args.endMonth)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetMonthlyData() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -691,37 +733,41 @@ func TestGetMonthlyData(t *testing.T) {
 			}
 		})
 	}
+
+	clearTable(t, memDB)
 }
 
 func TestDeleteSpendingByID(t *testing.T) {
-	memDb, _ := sql.Open("sqlite3", ":memory:")
-	defer memDb.Close()
+	ctx := context.Background()
+	memDB, err := New(":memory:")
+	if err != nil {
+		t.Error(err)
+	}
 
-	UpdateDBReference(memDb)
-	CreateSchema(memDb)
+	CreateSchema(ctx)
 
-	_, err := memDb.Exec(`
+	_, err = memDB.Exec(`
 	INSERT INTO budget (username, shopname, category, purchasedate, price) VALUES
-	('alice', 'lidl',   '', '01-2020',  12.0),
-	('alice', 'lidl',   '', '01-2020',   2.0),
-	('tom',   'lidl',   '', '01-2020',  10.0),
-	('alice', 'lidl',   '', '02-2020',   9.0),
-	('tom',   'lidl',   '', '02-2020',  15.4),
-	('alice', 'lidl',   '', '03-2020', 17.66),
-	('alice', 'lidl',   '', '03-2020',  15.8),
-	('tom',   'lidl',   '', '03-2020',   4.4),
-	('alice', 'lidl',   '', '04-2020', 318.9),
-	('tom',   'lidl',   '', '04-2020', 559.9),
-	('alice', 'lidl',   '', '04-2020',   4.3),
-	('tom',   'ikea',   '', '06-2020',   8.0),
-	('alice', 'lidl',   '', '07-2020',   1.0),
-	('alice', 'lidl',   '', '07-2020',   2.0),
-	('alice', 'lidl',   '', '07-2020',   4.0),
-	('tom',   'ikea',   '', '07-2020',  16.0),
-	('alice', 'amazon', '', '08-2020', 128.0),
-	('alice', 'amazon', '', '08-2020',  32.0),
-	('tom',   'siwa',   '', '08-2021', 256.0),
-	('tom',   'siwa',   '', '08-2021', 512.0) ;`)
+	('alice', 'lidl',   '', '01-01-2020',  12.0),
+	('alice', 'lidl',   '', '01-01-2020',   2.0),
+	('tom',   'lidl',   '', '01-01-2020',  10.0),
+	('alice', 'lidl',   '', '01-02-2020',   9.0),
+	('tom',   'lidl',   '', '01-02-2020',  15.4),
+	('alice', 'lidl',   '', '01-03-2020', 17.66),
+	('alice', 'lidl',   '', '01-03-2020',  15.8),
+	('tom',   'lidl',   '', '01-03-2020',   4.4),
+	('alice', 'lidl',   '', '01-04-2020', 318.9),
+	('tom',   'lidl',   '', '01-04-2020', 559.9),
+	('alice', 'lidl',   '', '01-04-2020',   4.3),
+	('tom',   'ikea',   '', '01-06-2020',   8.0),
+	('alice', 'lidl',   '', '01-07-2020',   1.0),
+	('alice', 'lidl',   '', '01-07-2020',   2.0),
+	('alice', 'lidl',   '', '01-07-2020',   4.0),
+	('tom',   'ikea',   '', '01-07-2020',  16.0),
+	('alice', 'amazon', '', '01-08-2020', 128.0),
+	('alice', 'amazon', '', '01-08-2020',  32.0),
+	('tom',   'siwa',   '', '01-08-2021', 256.0),
+	('tom',   'siwa',   '', '01-08-2021', 512.0) ;`)
 	if err != nil {
 		t.Fatalf("Unexpected error in SQL INSERT: %v", err)
 	}
@@ -754,35 +800,38 @@ func TestDeleteSpendingByID(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := DeleteSpendingByID(tt.args.bid, tt.args.username)
+			err := DeleteSpendingByID(ctx, tt.args.bid, tt.args.username)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("%s: DeleteSpendingByID() error=%v, wantErr %v",
 					tt.name, err, tt.wantErr)
 			}
 
 			rowAfterDeletion, err := GetSpendingRowByID(
-				tt.args.bid, tt.args.username)
+				ctx, tt.args.bid, tt.args.username)
 			if err == nil {
 				t.Errorf("%s: deletion of ID (%d) in budget table had failed, content was (%#v): %s",
 					tt.name, tt.args.bid, rowAfterDeletion, err)
 			}
-
 		})
 	}
+
+	clearTable(t, memDB)
 }
 
 func TestInsertPurchase(t *testing.T) {
-	memDb, _ := sql.Open("sqlite3", ":memory:")
-	defer memDb.Close()
+	ctx := context.Background()
+	memDB, err := New(":memory:")
+	if err != nil {
+		t.Error(err)
+	}
 
-	UpdateDBReference(memDb)
-	CreateSchema(memDb)
+	CreateSchema(ctx)
 
 	type args struct {
 		username     string
 		shopName     string
 		category     string
-		purchaseDate time.Time
+		PurchaseDate time.Time
 		price        float64
 	}
 	tests := []struct {
@@ -796,7 +845,7 @@ func TestInsertPurchase(t *testing.T) {
 				username:     "Jaakko",
 				shopName:     "Stockmann",
 				category:     "Food",
-				purchaseDate: time.Date(2022, 12, 5, 0, 0, 0, 0, time.UTC),
+				PurchaseDate: time.Date(2022, 12, 5, 0, 0, 0, 0, time.UTC),
 				price:        23.5,
 			},
 			wantErr: false,
@@ -804,44 +853,104 @@ func TestInsertPurchase(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := InsertPurchase(tt.args.username, tt.args.shopName, tt.args.category, tt.args.purchaseDate, tt.args.price)
+			err = InsertPurchase(
+				ctx,
+				tt.args.username,
+				tt.args.shopName,
+				tt.args.category,
+				tt.args.PurchaseDate,
+				tt.args.price)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("InsertPurchase() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			rows, err := memDb.Query("SELECT * FROM budget;")
+			budgetRows := &[]BudgetRow{}
+			err = memDB.SelectContext(ctx, budgetRows, "SELECT * FROM budget")
 			if err != nil {
-				t.Error(err)
+				t.Fatal(err)
+				return
 			}
-			defer rows.Close()
 
-			for rows.Next() {
-				var id int64
-				var username string
-				var shopname string
-				var category string
-				var purcDate time.Time
-				var price float32
-
-				if err = rows.Scan(&id, &username, &shopname, &category, &purcDate, &price); err != nil {
-					t.Error(err)
+			for _, row := range *budgetRows {
+				if row.ID != 1 {
+					t.Errorf("ID=%d, want=1", row.ID)
 				}
-
-				if id != 1 {
-					t.Errorf("ID=%d, want=1", id)
+				if row.Username != tt.args.username {
+					t.Errorf("Username=%s, want=%s", row.Username, tt.args.username)
 				}
-				if username != tt.args.username {
-					t.Errorf("Username=%s, want=%s", username, tt.args.username)
+				if row.ShopName != tt.args.shopName {
+					t.Errorf("Shop name=%s, want=%s", row.ShopName, tt.args.shopName)
 				}
-				if shopname != tt.args.shopName {
-					t.Errorf("Shop name=%s, want=%s", shopname, tt.args.shopName)
+				if row.Category != tt.args.category {
+					t.Errorf("Category=%s, want=%s", row.Category, tt.args.category)
 				}
-				if category != tt.args.category {
-					t.Errorf("Category=%s, want=%s", category, tt.args.category)
-				}
-				if !purcDate.Equal(tt.args.purchaseDate) {
-					t.Errorf("Purchase date=%#v, want=%#v", purcDate, tt.args.purchaseDate)
+				if !row.PurchaseDate.Equal(tt.args.PurchaseDate) {
+					t.Errorf("Purchase date=%#v, want=%#v", row.PurchaseDate, tt.args.PurchaseDate)
 				}
 			}
 		})
 	}
+
+	clearTable(t, memDB)
+}
+
+func TestInsertSalary(t *testing.T) {
+	ctx := context.Background()
+	memDB, err := New(":memory:")
+	if err != nil {
+		t.Error(err)
+	}
+
+	CreateSchema(ctx)
+
+	type args struct {
+		ctx        context.Context
+		username   string
+		salary     float64
+		recordTime time.Time
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Insert John's salary",
+			args: args{
+				ctx:        ctx,
+				username:   "John",
+				salary:     5555.5,
+				recordTime: time.Date(2020, 4, 1, 0, 0, 0, 0, time.UTC),
+			},
+			wantErr: false,
+		},
+		// TODO add clashing salary
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := InsertSalary(tt.args.ctx, tt.args.username, tt.args.salary, tt.args.recordTime)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("InsertSalary() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			salaries := DebtData{}
+			err = memDB.GetContext(ctx, &salaries, "SELECT username, salary, recordtime FROM salary;")
+			if err != nil {
+				t.Error(err)
+			}
+
+			if tt.args.username != salaries.Username {
+				t.Errorf("Wrong username returned from the database. Wanted %q, got %q",
+					tt.args.username, salaries.Username)
+			}
+			if tt.args.salary != salaries.Salary {
+				t.Errorf("Wrong salary returned from the database. Wanted %.2f, got %.2f",
+					tt.args.salary, salaries.Salary)
+			}
+			if !tt.args.recordTime.Equal(salaries.SalaryDate) {
+				t.Errorf("Wrong date returned from the database. Wanted %v, got %v",
+					tt.args.recordTime, salaries.SalaryDate)
+			}
+		})
+	}
+
+	clearTable(t, memDB)
 }

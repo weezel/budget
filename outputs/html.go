@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"embed"
 	"html/template"
-	"weezel/budget/external"
+	"weezel/budget/dbengine"
 )
 
 type TemplateType int
@@ -20,7 +20,7 @@ var dataTemplateFS embed.FS
 //go:embed monthlyspendings.gohtml
 var spendingsTemplateFS embed.FS
 
-func HTML(spending external.SpendingHTMLOutput, templateType TemplateType) ([]byte, error) {
+func HTML(spending dbengine.SpendingHTMLOutput, templateType TemplateType) ([]byte, error) {
 	var tpl *template.Template
 	var err error
 	var filename string

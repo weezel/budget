@@ -3,14 +3,14 @@ package outputs
 import (
 	"testing"
 	"time"
-	"weezel/budget/external"
+	"weezel/budget/dbengine"
 
 	"github.com/google/go-cmp/cmp"
 )
 
 func TestHTML(t *testing.T) {
 	type args struct {
-		spending     external.SpendingHTMLOutput
+		spending     dbengine.SpendingHTMLOutput
 		templateType TemplateType
 	}
 	tests := []struct {
@@ -22,50 +22,50 @@ func TestHTML(t *testing.T) {
 		{
 			"Test monthly spendings output",
 			args{
-				spending: external.SpendingHTMLOutput{
+				spending: dbengine.SpendingHTMLOutput{
 					From: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
 					To:   time.Date(2020, 12, 1, 1, 0, 0, 0, time.UTC),
-					Spendings: []external.SpendingHistory{
+					Spendings: []dbengine.SpendingHistory{
 						{
 							ID:        0,
 							Username:  "Dille",
 							MonthYear: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
-							Spending:  10,
+							Expenses:  10,
 							EventName: "beer",
 						},
 						{
 							ID:        1,
 							Username:  "Rolle",
 							MonthYear: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
-							Spending:  20.5,
+							Expenses:  20.5,
 							EventName: "pad thai",
 						},
 						{
 							ID:        2,
 							Username:  "Dille",
 							MonthYear: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
-							Spending:  850.99,
+							Expenses:  850.99,
 							EventName: "shoes",
 						},
 						{
 							ID:        3,
 							Username:  "Dille",
 							MonthYear: time.Date(2020, 11, 1, 1, 0, 0, 0, time.UTC),
-							Spending:  444.4,
+							Expenses:  444.4,
 							EventName: "moar beer",
 						},
 						{
 							ID:        4,
 							Username:  "Dille",
 							MonthYear: time.Date(2020, 11, 1, 1, 0, 0, 0, time.UTC),
-							Spending:  555.5,
+							Expenses:  555.5,
 							EventName: "cat food",
 						},
 						{
 							ID:        5,
 							Username:  "Dille",
 							MonthYear: time.Date(2020, 11, 1, 1, 0, 0, 0, time.UTC),
-							Spending:  666.6,
+							Expenses:  666.6,
 							EventName: "dog food",
 						},
 					},
@@ -151,36 +151,36 @@ func TestHTML(t *testing.T) {
 		{
 			"Test monthly data output",
 			args{
-				spending: external.SpendingHTMLOutput{
+				spending: dbengine.SpendingHTMLOutput{
 					From: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
 					To:   time.Date(2020, 12, 1, 1, 0, 0, 0, time.UTC),
-					Spendings: []external.SpendingHistory{
+					Spendings: []dbengine.SpendingHistory{
 						{
 							ID:        0,
 							Username:  "Dille",
 							MonthYear: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
-							Spending:  10,
+							Expenses:  10,
 							Salary:    2000,
 						},
 						{
 							ID:        1,
 							Username:  "John",
 							MonthYear: time.Date(2020, 10, 1, 1, 0, 0, 0, time.UTC),
-							Spending:  5,
+							Expenses:  5,
 							Salary:    4000,
 						},
 						{
 							ID:        2,
 							Username:  "Dille",
 							MonthYear: time.Date(2020, 11, 1, 1, 0, 0, 0, time.UTC),
-							Spending:  2.22,
+							Expenses:  2.22,
 							Salary:    555.5,
 						},
 						{
 							ID:        3,
 							Username:  "John",
 							MonthYear: time.Date(2020, 11, 1, 1, 0, 0, 0, time.UTC),
-							Spending:  1.11,
+							Expenses:  1.11,
 							Salary:    7.77,
 						},
 					},

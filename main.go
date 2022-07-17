@@ -25,17 +25,10 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-func connectAndInitDb(dbPath string) *sql.DB {
-	db, err := sql.Open("sqlite3", dbPath)
-	if err != nil {
-		logger.Fatal(err)
-	}
-	if exists, _ := utils.PathExists(dbPath); !exists {
-		dbengine.CreateSchema(db)
-	}
-
-	return db
-}
+var (
+	localRun       bool
+	configFileName string
+)
 
 // setWorkingDirectory changes working directory to same where
 // the executable is
@@ -55,6 +48,7 @@ func setWorkingDirectory(workdirPath string) string {
 }
 
 func main() {
+	ctx := context.Background()
 	var err error
 
 	if len(os.Args) < 2 {
@@ -80,12 +74,9 @@ func main() {
 
 	// protector.Protect(filepath.Join(cwd, "/"))
 
-	db := connectAndInitDb(filepath.Join(cwd, "budget.db"))
-	dbengine.UpdateDBReference(db)
-
-	bot, err := tgbotapi.NewBotAPI(conf.TeleConfig.ApiKey)
+	_, err = dbengine.New(filepath.Join(cwd, "budget.db"))
 	if err != nil {
-		logger.Fatalf("Couldn't create a new bot: %s", err)
+		logger.Fatal(err)
 	}
 	bot.Debug = false
 	logger.Infof("Using sername: %s", bot.Self.UserName)
@@ -117,5 +108,4 @@ func main() {
 	logger.Infof("HTTP server stopping")
 	defer cancel()
 	logger.Fatal(httpServ.Shutdown(ctx))
-
 }

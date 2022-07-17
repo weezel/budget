@@ -1,6 +1,7 @@
 package telegramhandler
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -9,7 +10,6 @@ import (
 	"strings"
 	"time"
 	"weezel/budget/dbengine"
-	"weezel/budget/external"
 	"weezel/budget/logger"
 	"weezel/budget/outputs"
 	"weezel/budget/shortlivedpage"
@@ -36,6 +36,7 @@ func displayHelp(username string, channelId int64, bot *tgbotapi.BotAPI) {
 }
 
 func handlePurchase(
+	ctx context.Context,
 	shopName string,
 	lastElem string,
 	username string,
@@ -45,10 +46,11 @@ func handlePurchase(
 	purchaseDate := utils.GetDate(tokenized, "01-2006")
 	price, err := strconv.ParseFloat(lastElem, 64)
 	if err != nil {
+		logger.Error(err)
 		return "Virhe, hinta täytyy olla komennon viimeinen elementti ja muodossa x,xx tai x.xx"
 	}
 
-	err = dbengine.InsertPurchase(username, shopName, category, purchaseDate, price)
+	err = dbengine.InsertPurchase(ctx, username, shopName, category, purchaseDate, price)
 	if err != nil {
 		logger.Error(err)
 		return "Ostotapahtuman kirjaus epäonnistui"
@@ -64,17 +66,17 @@ func handlePurchase(
 	return fmt.Sprintf("Ostosi on kirjattu, %s. Kiitos!", username)
 }
 
-func getPurchasesData(username string, hostname string, tokenized []string) string {
+func getPurchasesData(ctx context.Context, username string, hostname string, tokenized []string) string {
 	startMonth := utils.GetDate(tokenized[1:], "01-2006")
 	endMonth := utils.GetDate(tokenized[2:], "01-2006")
 
-	spending, err := dbengine.GetMonthlyPurchases(startMonth, endMonth)
+	spending, err := dbengine.GetMonthlyPurchases(ctx, startMonth, endMonth)
 	if err != nil {
 		logger.Error(err)
 		return "Kulutuksen hakemisessa ongelmaa"
 	}
 
-	var spendings external.SpendingHTMLOutput = external.SpendingHTMLOutput{
+	spendings := dbengine.SpendingHTMLOutput{
 		From:      startMonth,
 		To:        endMonth,
 		Spendings: spending,
@@ -104,17 +106,17 @@ func getPurchasesData(username string, hostname string, tokenized []string) stri
 		htmlPageHash)
 }
 
-func getStatsTimeSpan(hostname string, tokenized []string) string {
+func getStatsTimeSpan(ctx context.Context, hostname string, tokenized []string) string {
 	startMonth := utils.GetDate(tokenized[1:], "01-2006")
 	endMonth := utils.GetDate(tokenized[2:], "01-2006")
 
-	monthlyStats, err := dbengine.GetMonthlyData(startMonth, endMonth)
+	monthlyStats, err := dbengine.GetMonthlyData(ctx, startMonth, endMonth)
 	if err != nil {
 		logger.Error(err)
 		return "Tilastojen hakemisessa ongelmaa"
 	}
 
-	var spendings external.SpendingHTMLOutput = external.SpendingHTMLOutput{
+	spendings := dbengine.SpendingHTMLOutput{
 		From:      startMonth,
 		To:        endMonth,
 		Spendings: monthlyStats,
@@ -144,7 +146,7 @@ func getStatsTimeSpan(hostname string, tokenized []string) string {
 		htmlPageHash)
 }
 
-func handleRemovePurchase(username string, tokenized []string) (string, error) {
+func handleRemovePurchase(ctx context.Context, username string, tokenized []string) (string, error) {
 	switch tokenized[1] {
 	case "osto":
 		bid, err := strconv.ParseInt(tokenized[2], 10, 64)
@@ -153,28 +155,28 @@ func handleRemovePurchase(username string, tokenized []string) (string, error) {
 			return "Oston ID parsinta epäonnistui", nil
 		}
 
-		row, err := dbengine.GetSpendingRowByID(bid, username)
+		row, err := dbengine.GetSpendingRowByID(ctx, bid, username)
 		if err != nil {
 			logger.Error(err)
 			return fmt.Sprintf("Oston hakeminen ID:n (%d) perusteella epäonnistui", bid),
 				nil
 		}
 
-		err = dbengine.DeleteSpendingByID(bid, username)
+		err = dbengine.DeleteSpendingByID(ctx, bid, username)
 		if err != nil {
 			logger.Error(err)
 			return fmt.Sprintf("Oston ID (%d) poisto epäonnistui", bid), nil
 		}
 		logger.Infof("Removed item (ID %d) %s %.2f€ [%s] by %s",
-			row.ID, row.Shopname, row.Price, row.Purchasedate, username)
+			row.ID, row.ShopName, row.Price, row.PurchaseDate, username)
 		return fmt.Sprintf("Poistettu tapahtuma (ID %d) %s %.2f€ [%s]",
-			row.ID, row.Shopname, row.Price, row.Purchasedate), nil
+			row.ID, row.ShopName, row.Price, row.PurchaseDate), nil
 	}
 
 	return "", errors.New("unknown operation")
 }
 
-func handleGetSalaries(tokenized []string) string {
+func handleGetSalaries(ctx context.Context, tokenized []string) string {
 	forMonth := utils.GetDate(tokenized, "01-2006")
 	if reflect.DeepEqual(forMonth, time.Time{}) {
 		logger.Errorf("Couldn't parse date for salaries: %#v", tokenized)
@@ -182,10 +184,7 @@ func handleGetSalaries(tokenized []string) string {
 	}
 
 	halfYearAgo := forMonth.AddDate(0, -6, 0)
-	salaries, err := dbengine.GetSalariesByMonthRange(
-		halfYearAgo,
-		forMonth,
-	)
+	salaries, err := dbengine.GetSalariesByMonthRange(ctx, halfYearAgo, forMonth)
 	if err != nil {
 		logger.Error(err)
 		return "Voi ei, ei saatu palkkatietoja."
@@ -199,7 +198,7 @@ func handleGetSalaries(tokenized []string) string {
 		}
 		msg := fmt.Sprintf("%s  %s  %s",
 			user.Username,
-			user.Date,
+			user.PurchaseDate,
 			salarySet,
 		)
 		finalMsg[i] = msg
@@ -208,11 +207,7 @@ func handleGetSalaries(tokenized []string) string {
 	return strings.Join(finalMsg, "\n")
 }
 
-func handleSalaryInsert(
-	username string,
-	lastElem string,
-	tokenized []string,
-) string {
+func handleSalaryInsert(ctx context.Context, username string, lastElem string, tokenized []string) string {
 	salaryDate := utils.GetDate(tokenized, "01-2006")
 	salary, err := strconv.ParseFloat(lastElem, 64)
 	if err != nil {
@@ -220,7 +215,7 @@ func handleSalaryInsert(
 		return "Virhe palkan parsinnassa. Palkan oltava viimeisenä ja muodossa x.xx tai x,xx"
 	}
 
-	dbengine.InsertSalary(username, salary, salaryDate)
+	dbengine.InsertSalary(ctx, username, salary, salaryDate)
 
 	logger.Infof("Inserted salary amount of %.2f by %s on %s",
 		salary,
@@ -229,14 +224,14 @@ func handleSalaryInsert(
 	return fmt.Sprintf("Palkka kirjattu, %s. Kiitos!", username)
 }
 
-func handleVelat(tokenized []string) string {
+func handleVelat(ctx context.Context, tokenized []string) string {
 	forMonth := utils.GetDate(tokenized, "01-2006")
 	if reflect.DeepEqual(forMonth, time.Time{}) {
 		logger.Errorf("couldn't parse date for debts")
 		return "Virhe päivämäärän parsinnassa. Oltava muotoa kk-vvvv"
 	}
 
-	debts, err := dbengine.GetSalaryCompensatedDebts(forMonth)
+	debts, err := dbengine.GetSalaryCompensatedDebts(ctx, forMonth)
 	if err != nil {
 		logger.Error(err)
 		return fmt.Sprintf("Voi ei, ei saatu velkatietoja: %s", err)
@@ -277,6 +272,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
+	ctx := context.Background()
 
 	updates := bot.GetUpdatesChan(u)
 	for update := range updates {
@@ -302,7 +298,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 			}
 
 			shopName := tokenized[1]
-			msg = handlePurchase(shopName, lastElem, username, tokenized)
+			msg = handlePurchase(ctx, shopName, lastElem, username, tokenized)
 			outMsg := tgbotapi.NewMessage(channelId, msg)
 			if err = SendTelegram(bot, outMsg, false); err != nil {
 				logger.Error(err)
@@ -313,7 +309,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 				continue
 			}
 
-			msg = getPurchasesData(username, hostname, tokenized)
+			msg = getPurchasesData(ctx, username, hostname, tokenized)
 			outMsg := tgbotapi.NewMessage(channelId, msg)
 			if err = SendTelegram(bot, outMsg, false); err != nil {
 				logger.Error(err)
@@ -324,7 +320,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 				continue
 			}
 
-			msg = getStatsTimeSpan(hostname, tokenized)
+			msg = getStatsTimeSpan(ctx, hostname, tokenized)
 			outMsg := tgbotapi.NewMessage(channelId, msg)
 			if err = SendTelegram(bot, outMsg, false); err != nil {
 				logger.Error(err)
@@ -335,7 +331,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 				continue
 			}
 
-			msg = handleSalaryInsert(username, lastElem, tokenized)
+			msg = handleSalaryInsert(ctx, username, lastElem, tokenized)
 			outMsg := tgbotapi.NewMessage(channelId, msg)
 			if err = SendTelegram(bot, outMsg, false); err != nil {
 				logger.Error(err)
@@ -346,7 +342,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 				continue
 			}
 
-			msg = handleGetSalaries(tokenized)
+			msg = handleGetSalaries(ctx, tokenized)
 			outMsg := tgbotapi.NewMessage(channelId, msg)
 			if err = SendTelegram(bot, outMsg, false); err != nil {
 				logger.Error(err)
@@ -357,7 +353,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 				continue
 			}
 
-			msg, err = handleRemovePurchase(username, tokenized)
+			msg, err = handleRemovePurchase(ctx, username, tokenized)
 			if err != nil {
 				displayHelp(username, channelId, bot)
 				continue
@@ -372,7 +368,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 				continue
 			}
 
-			msg := handleVelat(tokenized)
+			msg := handleVelat(ctx, tokenized)
 			outMsg := tgbotapi.NewMessage(channelId, msg)
 			if err = SendTelegram(bot, outMsg, false); err != nil {
 				logger.Error(err)

@@ -1,102 +1,141 @@
 package dbengine
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"math"
-	"reflect"
+	"path/filepath"
 	"sort"
+	"sync"
 	"time"
-	"weezel/budget/external"
 	"weezel/budget/logger"
+	"weezel/budget/utils"
 
+	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 )
 
 var (
-	dbConn *sql.DB
+	once       sync.Once
+	db         *sqlx.DB
+	dbErr      error
+	dbFilePath string
 )
 
 type DebtData struct {
-	Date     time.Time
-	Username string
-	Expanses float64
-	Owes     float64
-	Salary   float64
+	_            struct{}  // Enforces keyed fields
+	PurchaseDate time.Time `db:"purchasedate"`
+	Expenses     float64   `db:"expenses"`
+	Salary       float64   `db:"salary"`
+	Username     string    `db:"username"`
+	Owes         float64   `db:"owes"`
+	SalaryDate   time.Time `db:"recordtime"`
 }
 
 type BudgetRow struct {
-	Purchasedate time.Time
-	Username     string
-	Shopname     string
-	Category     string
-	ID           int64
-	Price        float64
+	_            struct{}
+	ID           int64     `db:"id"`
+	Price        float64   `db:"price"`
+	PurchaseDate time.Time `db:"purchasedate"`
+	Username     string    `db:"username"`
+	ShopName     string    `db:"shopname"`
+	Category     string    `db:"category"`
+}
+
+type SpendingHistory struct {
+	_         struct{}
+	ID        int64     `db:"id"`
+	Expenses  float64   `db:"expenses"`
+	Salary    float64   `db:"salary"`
+	MonthYear time.Time `db:"purchasedate"`
+	Username  string    `db:"username"`
+	EventName string    `db:"event"`
+}
+
+type SpendingHTMLOutput struct {
+	From      time.Time
+	To        time.Time
+	Spendings []SpendingHistory
 }
 
 func (d *DebtData) PrettyPrint() string {
 	return fmt.Sprintf("%s kulut oli %.4f %s aikana. Palkka tuossa kuussa oli %.2f. Velkaa %.4f",
 		d.Username,
-		d.Expanses,
-		d.Date,
+		d.Expenses,
+		d.PurchaseDate,
 		d.Salary,
 		d.Owes)
 }
 
-func CreateSchema(db *sql.DB) {
-	_, err := db.Exec(DbCreationSchema)
-	if err != nil {
-		logger.Fatal(err)
-	}
+// New initializes database once. Also known as singleton.
+func New(dataSource string) (*sqlx.DB, error) {
+	once.Do(func() {
+		if dataSource == ":memory:" {
+			db, dbErr = sqlx.Connect("sqlite3", ":memory:")
+			if dbErr != nil {
+				logger.Fatal(dbErr)
+			}
+		} else {
+			// File based database
+			tmp, err := filepath.Abs(filepath.Clean(dataSource))
+			if err != nil {
+				logger.Panic(err)
+			}
+			dbFilePath = tmp // Store db file path for later use
+
+			db, dbErr = sqlx.Connect("sqlite3", dbFilePath)
+			if dbErr != nil {
+				logger.Fatal(dbErr)
+			}
+		}
+		dbErr = db.Ping()
+	})
+
+	return db, dbErr
 }
 
-func UpdateDBReference(db *sql.DB) {
-	if db == nil {
-		return
+func CreateSchema(ctx context.Context) error {
+	dirPath := filepath.Dir(dbFilePath)
+	exists, err := utils.PathExists(dirPath)
+	if err != nil {
+		return err
 	}
-	dbConn = db
+	if exists {
+		_, err := db.ExecContext(ctx, DbCreationSchema)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func GetSpendingRowByID(bid int64, username string) (BudgetRow, error) {
-	stmt, err := dbConn.Prepare(GetSpendingByIDQuery)
+func GetSpendingRowByID(ctx context.Context, bid int64, username string) (*BudgetRow, error) {
+	expense := &BudgetRow{}
+	err := db.GetContext(ctx, expense, GetSpendingByIDQuery, bid, username)
 	if err != nil {
-		return BudgetRow{}, err
-	}
-	defer stmt.Close()
-
-	budgetRow := BudgetRow{}
-	err = stmt.QueryRow(bid, username).Scan(
-		&budgetRow.ID,
-		&budgetRow.Username,
-		&budgetRow.Shopname,
-		&budgetRow.Category,
-		&budgetRow.Purchasedate,
-		&budgetRow.Price)
-	if err != nil {
-		return BudgetRow{}, err
-	} else if err == nil && reflect.DeepEqual(budgetRow, BudgetRow{}) {
-		errMsg := fmt.Sprintf("User %s not permitted to delete row %d from the budget table",
-			username, bid)
-		return BudgetRow{}, errors.New(errMsg)
+		return nil, err
 	}
 
-	return budgetRow, nil
+	return expense, nil
 }
 
-func DeleteSpendingByID(bid int64, username string) error {
-	deletableRow, err := GetSpendingRowByID(bid, username)
+// TODO Return *BudgetRow
+func DeleteSpendingByID(ctx context.Context, bid int64, username string) error {
+	deletableRow, err := GetSpendingRowByID(ctx, bid, username)
 	if err != nil {
 		return err
 	}
 
-	stmt, err := dbConn.Prepare(DeleteSpendingByIDQuery)
+	stmt, err := db.PreparexContext(ctx, DeleteSpendingByIDQuery)
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
 
-	res, err := stmt.Exec(bid, username)
+	// TODO Use sql.Named?
+	res, err := stmt.ExecContext(ctx, bid, username)
 	if err != nil {
 		return err
 	}
@@ -113,46 +152,47 @@ func DeleteSpendingByID(bid int64, username string) error {
 	return nil
 }
 
-func InsertSalary(username string, salary float64, recordTime time.Time) bool {
-	stmt, err := dbConn.Prepare(InsertSalaryQuery)
+func InsertSalary(ctx context.Context, username string, salary float64, recordTime time.Time) error {
+	stmt, err := db.PreparexContext(ctx, InsertSalaryQuery)
 	if err != nil {
-		logger.Errorf("preparing salary insert statement failed: %v", err)
-		return false
+		return err
 	}
 	defer stmt.Close()
 
-	res, err := stmt.Exec(
+	res, err := stmt.ExecContext(
+		ctx,
 		sql.Named("username", username),
 		sql.Named("salary", salary),
 		sql.Named("recordtime", recordTime.Format("2006-01-02")),
 	)
 	if err != nil {
-		logger.Errorf("failed to insert salary data: %s", err)
-		return false
+		return err
 	}
 	rowsAffected, err := res.RowsAffected()
 	if err != nil {
-		logger.Errorf("getting salary rows failed: %v", err)
-		return false
+		return err
 	}
+
 	logger.Infof("Wrote %d salary rows", rowsAffected)
-	return true
+	return nil
 }
 
 func InsertPurchase(
+	ctx context.Context,
 	username string,
 	shopName string,
 	category string,
 	purchaseDate time.Time,
 	price float64,
 ) error {
-	stmt, err := dbConn.Prepare(InsertShoppingQuery)
+	stmt, err := db.PreparexContext(ctx, InsertShoppingQuery)
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
 
-	res, err := stmt.Exec(
+	res, err := stmt.ExecContext(
+		ctx,
 		sql.Named("username", username),
 		sql.Named("shopname", shopName),
 		sql.Named("category", category),
@@ -171,41 +211,24 @@ func InsertPurchase(
 	return nil
 }
 
-func GetSalaryCompensatedDebts(month time.Time) ([]DebtData, error) {
-	debts := make([]DebtData, 0)
-
-	stmt, err := dbConn.Prepare(PurchasesQuery)
+func GetSalaryCompensatedDebts(ctx context.Context, month time.Time) ([]DebtData, error) {
+	debts := []DebtData{}
+	err := db.SelectContext(ctx, &debts, PurchasesQuery, month.Format("2006-01"))
 	if err != nil {
-		return []DebtData{}, err
-	}
-	defer stmt.Close()
-
-	res, err := stmt.Query(month.Format("2006-01"))
-	if err != nil {
-		return []DebtData{}, err
-	}
-	defer res.Close()
-
-	for res.Next() {
-		d := DebtData{}
-		err = res.Scan(&d.Username, &d.Date, &d.Expanses)
-		if err != nil {
-			return []DebtData{}, err
-		}
-		debts = append(debts, d)
+		return nil, err
 	}
 
 	if len(debts) < 2 {
-		return []DebtData{}, err
+		return nil, errors.New("not enough users to calculate debts")
 	}
 
-	debts[0].Salary, err = getSalaryDataByUser(debts[0].Username, month)
+	debts[0].Salary, err = getSalaryDataByUser(ctx, debts[0].Username, month)
 	if err != nil {
-		return []DebtData{}, err
+		return nil, err
 	}
-	debts[1].Salary, err = getSalaryDataByUser(debts[1].Username, month)
+	debts[1].Salary, err = getSalaryDataByUser(ctx, debts[1].Username, month)
 	if err != nil {
-		return []DebtData{}, err
+		return nil, err
 	}
 	// Descending order regarding to salary
 	sort.Slice(debts, func(i, j int) bool {
@@ -216,12 +239,12 @@ func GetSalaryCompensatedDebts(month time.Time) ([]DebtData, error) {
 	lowerIncomeRatio := debts[0].Salary / sumSalaries
 	greaterIncomeRatio := debts[1].Salary / sumSalaries
 
-	lowerIncomeOwes := debts[1].Expanses * lowerIncomeRatio
-	greaterIncomeOwes := debts[0].Expanses * greaterIncomeRatio
+	lowerIncomeOwes := debts[1].Expenses * lowerIncomeRatio
+	greaterIncomeOwes := debts[0].Expenses * greaterIncomeRatio
 
-	totalExpanses := float64(debts[0].Expanses + debts[1].Expanses)
-	expRatioByLowerInc := debts[0].Expanses / totalExpanses
-	expRatioByGreaterInc := debts[1].Expanses / totalExpanses
+	totalExpenses := float64(debts[0].Expenses + debts[1].Expenses)
+	expRatioByLowerInc := debts[0].Expenses / totalExpenses
+	expRatioByGreaterInc := debts[1].Expenses / totalExpenses
 
 	debt := math.Abs(greaterIncomeOwes - lowerIncomeOwes)
 
@@ -230,9 +253,9 @@ func GetSalaryCompensatedDebts(month time.Time) ([]DebtData, error) {
 	logger.Debugf("Lower income owes: %.2f", lowerIncomeOwes)
 	logger.Debugf("Greater income ration: %.2f", greaterIncomeRatio)
 	logger.Debugf("Greater income owes: %.2f", greaterIncomeOwes)
-	logger.Debugf("Expanses ratio by lower income: %.2f", expRatioByLowerInc)
-	logger.Debugf("Expanses ratio by greater income: %.2f", expRatioByGreaterInc)
-	logger.Debugf("Total expanses: %.2f", totalExpanses)
+	logger.Debugf("Expenses ratio by lower income: %.2f", expRatioByLowerInc)
+	logger.Debugf("Expenses ratio by greater income: %.2f", expRatioByGreaterInc)
+	logger.Debugf("Total expenses: %.2f", totalExpenses)
 	logger.Debugf("Debt in the end: %.2f", debt)
 
 	if expRatioByLowerInc < expRatioByGreaterInc {
@@ -242,169 +265,66 @@ func GetSalaryCompensatedDebts(month time.Time) ([]DebtData, error) {
 		debts[0].Owes = 0.0
 		debts[1].Owes = debt
 	}
-	logger.Infof("Debts fetched: %#v", debts)
+	logger.Debugf("Debts fetched: %#v", debts)
 
 	return debts, nil
 }
 
 // Yes, I recognize the functionality is a bit fugly but will fix it later.
-func GetMonthlyPurchases(startMonth time.Time, endMonth time.Time) (
-	[]external.SpendingHistory,
+func GetMonthlyPurchases(ctx context.Context, startMonth time.Time, endMonth time.Time) (
+	[]SpendingHistory,
 	error,
 ) {
-	var err error
-	var spending []external.SpendingHistory = []external.SpendingHistory{}
-
-	stmt, err := dbConn.Prepare(MonthlyPurchasesQuery)
-	if err != nil {
-		return []external.SpendingHistory{}, err
-	}
-	defer stmt.Close()
-
-	for iterMonth := startMonth; iterMonth.Before(endMonth) || iterMonth.Equal(endMonth); iterMonth = iterMonth.AddDate(0, 1, 0) {
-		res, err := stmt.Query(iterMonth.Format("2006-01"))
+	// TODO Use smarter SQL to fetch all data with one shot
+	spending := []SpendingHistory{}
+	for month := startMonth; month.Before(endMonth) ||
+		month.Equal(endMonth); month = month.AddDate(0, 1, 0) {
+		s := []SpendingHistory{}
+		err := db.SelectContext(ctx, &s, MonthlyPurchasesQuery, month.Format("2006-01-02"))
 		if err != nil {
-			return []external.SpendingHistory{}, err
+			return nil, err
 		}
-		defer res.Close()
-
-		for res.Next() {
-			s := external.SpendingHistory{}
-
-			var tmpDate string
-			err = res.Scan(&s.ID, &s.Username, &tmpDate, &s.EventName, &s.Spending)
-			if err != nil {
-				logger.Errorf("couldn't parse purchases by user: %s", err)
-				continue
-			}
-			s.MonthYear, err = time.Parse("2006-01", tmpDate)
-			if err != nil {
-				logger.Error(err)
-				continue
-			}
-
-			spending = append(spending, s)
-		}
+		spending = append(spending, s...)
 	}
 	return spending, nil
 }
 
-func GetMonthlyData(startMonth time.Time, endMonth time.Time) (
-	[]external.SpendingHistory,
+func GetMonthlyData(ctx context.Context, startMonth time.Time, endMonth time.Time) (
+	[]SpendingHistory,
 	error,
 ) {
-	var err error
-	var spending []external.SpendingHistory = []external.SpendingHistory{}
-
-	stmt, err := dbConn.Prepare(DateRangeSpendingQuery)
+	spending := []SpendingHistory{}
+	err := db.SelectContext(ctx, &spending, DateRangeSpendingQuery,
+		startMonth.Format("2006-01-02"), endMonth.Format("2006-01-02"))
 	if err != nil {
-		errMsg := fmt.Sprintf("Failed to prepare purchases by user query: %v", err)
-		return []external.SpendingHistory{}, errors.New(errMsg)
-	}
-	defer stmt.Close()
-
-	res, err := stmt.Query(
-		startMonth.Format("2006-01-02"),
-		endMonth.Format("2006-01-02"))
-	if err != nil {
-		errMsg := fmt.Sprintf("Couldn't get monthly data: %v", err)
-		return []external.SpendingHistory{}, errors.New(errMsg)
-	}
-	defer res.Close()
-
-	for res.Next() {
-		s := external.SpendingHistory{}
-		var spendingTmp sql.NullFloat64
-		var salaryTmp sql.NullFloat64
-
-		var t string
-		if err = res.Scan(&s.Username, &t, &spendingTmp, &salaryTmp); err != nil {
-			logger.Errorf("couldn't parse purchases for user: %s", err)
-			continue
-		}
-
-		s.MonthYear, err = time.Parse("2006-01", t)
-		if err != nil {
-			logger.Error(err)
-			continue
-		}
-
-		if spendingTmp.Valid {
-			s.Spending = spendingTmp.Float64
-		} else {
-			s.Spending = math.NaN()
-		}
-
-		if salaryTmp.Valid {
-			s.Salary = salaryTmp.Float64
-		} else {
-			s.Salary = math.NaN()
-		}
-
-		spending = append(spending, s)
+		return nil, err
 	}
 
 	return spending, nil
 }
 
-func getSalaryDataByUser(username string, month time.Time) (float64, error) {
-	stmt, err := dbConn.Prepare(SalaryQuery)
+func GetSalariesByMonthRange(ctx context.Context, startTime time.Time, endTime time.Time) ([]DebtData, error) {
+	salaries := []DebtData{}
+	err := db.SelectContext(ctx, &salaries, SalariesQuery,
+		startTime.Format("2006-01-02"), endTime.Format("2006-01-02"))
 	if err != nil {
-		return math.NaN(), err
+		return nil, err
 	}
-	defer stmt.Close()
 
-	res, err := stmt.Query(username, month.Format("2006-01"))
-	if err != nil {
-		return math.NaN(), err
-	}
-	defer res.Close()
-
-	var salary float64
-	for res.Next() {
-		err = res.Scan(&salary)
-		if err != nil {
-			return math.NaN(), err
-		}
-	}
-	logger.Infof("Salary for %s on %s is %.4f",
-		username,
-		month.UTC().Format("01-2006"),
-		salary)
-
-	return salary, nil
-}
-
-func GetSalariesByMonthRange(startMonth time.Time, endMonth time.Time) ([]DebtData, error) {
-	stmt, err := dbConn.Prepare(SalariesQuery)
-	if err != nil {
-		return []DebtData{}, err
-	}
-	defer stmt.Close()
-
-	s, e := startMonth.UTC().Format("2006-01"),
-		endMonth.UTC().Format("2006-01")
-	res, err := stmt.Query(s, e)
-	if err != nil {
-		return []DebtData{}, err
-	}
-	defer res.Close()
-
-	var salaries []DebtData = make([]DebtData, 0)
-	for res.Next() {
-		var salary DebtData
-		err = res.Scan(&salary.Username, &salary.Salary, &salary.Date)
-		if err != nil {
-			return []DebtData{}, err
-		}
-		if salary.Salary > 0 {
-			salary.Salary = 1.0
-		}
-		salaries = append(salaries, salary)
-
-	}
 	logger.Debugf("Salaries starting on %s between %s are %+v",
-		s, e, salaries)
+		startTime.Format("2006-01-02"), endTime.Format("2006-01-02"), salaries)
 
 	return salaries, nil
+}
+
+func getSalaryDataByUser(ctx context.Context, username string, month time.Time) (float64, error) {
+	var salary float64
+	err := db.GetContext(ctx, &salary, SalaryQuery, username, month.Format("2006-01"))
+	if err != nil {
+		return math.NaN(), err
+	}
+
+	logger.Debugf("Salary for %s on %s is %.4f", username, month.UTC().Format("01-2006"), salary)
+
+	return salary, nil
 }
