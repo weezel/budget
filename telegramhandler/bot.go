@@ -243,7 +243,7 @@ func handleVelat(ctx context.Context, tokenized []string) string {
 	debts, err := dbengine.GetSalaryCompensatedDebts(ctx, forMonth)
 	if err != nil {
 		logger.Error(err)
-		return fmt.Sprintf("Voi ei, ei saatu velkatietoja: %s", err)
+		return fmt.Sprintf("Bzzzt, ei saatu velkatietoja")
 	}
 
 	var s strings.Builder
