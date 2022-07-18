@@ -21,7 +21,7 @@ type ShortLivedPage struct {
 }
 
 func cleaner() {
-	var removableHashes []string = []string{}
+	removableHashes := []string{}
 
 	logger.Debugf("Starting scheduled cleaning for short lived pages")
 	for pageHash, page := range shortLivedPages {

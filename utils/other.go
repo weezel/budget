@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-var categoryPattern *regexp.Regexp = regexp.MustCompile(`^#[a-zA-Z1-9_-]+$`)
+var categoryPattern = regexp.MustCompile(`^#[a-zA-Z1-9_-]+$`)
 
 func GetCategory(tokens []string) string {
 	for _, token := range tokens {

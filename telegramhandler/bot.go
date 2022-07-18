@@ -18,6 +18,11 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
+const (
+	failed         = "\u274C"
+	heavyCheckMark = "\u2714"
+)
+
 var splitPath = regexp.MustCompile(`\s+`)
 
 func displayHelp(username string, channelID int64, bot *tgbotapi.BotAPI) {
@@ -190,18 +195,18 @@ func handleGetSalaries(ctx context.Context, tokenized []string) string {
 		return "Voi ei, ei saatu palkkatietoja."
 	}
 
-	var finalMsg []string = make([]string, len(salaries))
-	for i, user := range salaries {
-		var salarySet string = "\u274C"
+	finalMsg := []string{}
+	for _, user := range salaries {
+		salarySet := failed
 		if user.Salary > 0 {
-			salarySet = "\u2714"
+			salarySet = heavyCheckMark
 		}
 		msg := fmt.Sprintf("%s  %s  %s",
 			user.Username,
 			user.PurchaseDate,
 			salarySet,
 		)
-		finalMsg[i] = msg
+		finalMsg = append(finalMsg, msg)
 	}
 
 	return strings.Join(finalMsg, "\n")

@@ -24,7 +24,7 @@ func HTML(spending dbengine.SpendingHTMLOutput, templateType TemplateType) ([]by
 	var tpl *template.Template
 	var err error
 	var filename string
-	var buf bytes.Buffer = bytes.Buffer{}
+	buf := bytes.Buffer{}
 
 	switch templateType {
 	case MonthlyDataTemplate:
