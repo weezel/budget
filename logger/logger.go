@@ -59,7 +59,7 @@ func SetLoggingToFile(logFilePath string) error {
 	}
 	loggingFileAbsPath := filepath.Clean(cleanedPath)
 	log.Infof("Logging to file %s", loggingFileAbsPath)
-	logFileHandle, err := os.OpenFile(
+	logFileHandle, err = os.OpenFile(
 		loggingFileAbsPath,
 		os.O_APPEND|os.O_CREATE|os.O_RDWR,
 		0o600)
