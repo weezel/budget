@@ -28,6 +28,10 @@ func clearTable(t *testing.T, dbRef *sqlx.DB) {
 }
 
 func Test_getSalaryDataByUser(t *testing.T) {
+	if testing.Short() {
+		t.Skipf("Skipping %s since `-short` was provided", t.Name())
+	}
+
 	ctx := context.Background()
 	memDB, err := New(":memory:")
 	if err != nil {
@@ -88,6 +92,10 @@ INSERT INTO salary (username, salary, recordtime) VALUES
 }
 
 func TestGetSalaryCompensatedDebts(t *testing.T) {
+	if testing.Short() {
+		t.Skipf("Skipping %s since `-short` was provided", t.Name())
+	}
+
 	ctx := context.Background()
 	memDB, err := New(":memory:")
 	if err != nil {
@@ -286,6 +294,10 @@ INSERT INTO budget (username, shopname, category, purchasedate, price) VALUES
 }
 
 func TestGetSalariesByMonth(t *testing.T) {
+	if testing.Short() {
+		t.Skipf("Skipping %s since `-short` was provided", t.Name())
+	}
+
 	ctx := context.Background()
 	memDB, err := New(":memory:")
 	if err != nil {
@@ -429,6 +441,10 @@ INSERT INTO salary (username, salary, recordtime) VALUES
 }
 
 func TestGetMonthlyPurchases(t *testing.T) {
+	if testing.Short() {
+		t.Skipf("Skipping %s since `-short` was provided", t.Name())
+	}
+
 	ctx := context.Background()
 	memDB, err := New(":memory:")
 	if err != nil {
@@ -580,6 +596,10 @@ func TestGetMonthlyPurchases(t *testing.T) {
 }
 
 func TestGetMonthlyData(t *testing.T) {
+	if testing.Short() {
+		t.Skipf("Skipping %s since `-short` was provided", t.Name())
+	}
+
 	ctx := context.Background()
 	memDB, err := New("kakka.db")
 	if err != nil {
@@ -738,6 +758,10 @@ func TestGetMonthlyData(t *testing.T) {
 }
 
 func TestDeleteSpendingByID(t *testing.T) {
+	if testing.Short() {
+		t.Skipf("Skipping %s since `-short` was provided", t.Name())
+	}
+
 	ctx := context.Background()
 	memDB, err := New(":memory:")
 	if err != nil {
@@ -819,6 +843,10 @@ func TestDeleteSpendingByID(t *testing.T) {
 }
 
 func TestInsertPurchase(t *testing.T) {
+	if testing.Short() {
+		t.Skipf("Skipping %s since `-short` was provided", t.Name())
+	}
+
 	ctx := context.Background()
 	memDB, err := New(":memory:")
 	if err != nil {
@@ -894,6 +922,10 @@ func TestInsertPurchase(t *testing.T) {
 }
 
 func TestInsertSalary(t *testing.T) {
+	if testing.Short() {
+		t.Skipf("Skipping %s since `-short` was provided", t.Name())
+	}
+
 	ctx := context.Background()
 	memDB, err := New(":memory:")
 	if err != nil {
