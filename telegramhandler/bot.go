@@ -215,7 +215,11 @@ func handleSalaryInsert(ctx context.Context, username string, lastElem string, t
 		return "Virhe palkan parsinnassa. Palkan oltava viimeisenä ja muodossa x.xx tai x,xx"
 	}
 
-	dbengine.InsertSalary(ctx, username, salary, salaryDate)
+	err = dbengine.InsertSalary(ctx, username, salary, salaryDate)
+	if err != nil {
+		logger.Errorf("couldn't insert salary: %v", err)
+		return "Virhe palkan lisäämisessä, kysy apua"
+	}
 
 	logger.Infof("Inserted salary amount of %.2f by %s on %s",
 		salary,
