@@ -56,13 +56,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	configFile, err := ioutil.ReadFile(os.Args[1])
+	configFile, err := ioutil.ReadFile(filepath.Clean(configFileName))
 	if err != nil {
 		log.Panic(err)
 	}
 	conf := confighandler.LoadConfig(configFile)
 
-	var cwd string = setWorkingDirectory(conf.TeleConfig.WorkingDir)
+	cwd := setWorkingDirectory(conf.TeleConfig.WorkingDir)
 
 	err = logger.SetLoggingToFile(filepath.Join(cwd, "budget.log"))
 	if err != nil {
