@@ -87,7 +87,7 @@ func main() {
 	shortlivedpage.InitScheduler()
 
 	if !localRun {
-		bot, err := tgbotapi.NewBotAPI(conf.TeleConfig.ApiKey)
+		bot, err := tgbotapi.NewBotAPI(conf.TeleConfig.APIKey)
 		if err != nil {
 			logger.Fatalf("Couldn't create a new bot: %s", err)
 		}
@@ -95,7 +95,7 @@ func main() {
 		logger.Infof("Using sername: %s", bot.Self.UserName)
 		go telegramhandler.ConnectionHandler(
 			bot,
-			conf.TeleConfig.ChannelId,
+			conf.TeleConfig.ChannelID,
 			conf.WebserverConfig.Hostname)
 	} else {
 		// Run locally, hence without Telegram
@@ -119,14 +119,14 @@ func main() {
 
 		htmlPageHash := utils.CalcSha256Sum(htmlPage)
 		shortlivedPage := shortlivedpage.ShortLivedPage{
-			TimeToLiveSeconds: 600,
-			StartTime:         time.Now(),
-			HtmlPage:          &htmlPage,
+			TTLSeconds: 600,
+			StartTime:  time.Now(),
+			HTMLPage:   &htmlPage,
 		}
 		addOk := shortlivedpage.Add(htmlPageHash, shortlivedPage)
 		if addOk {
 			endTime := shortlivedPage.StartTime.Add(
-				time.Duration(shortlivedPage.TimeToLiveSeconds))
+				time.Duration(shortlivedPage.TTLSeconds))
 			logger.Infof("Added shortlived data page %s with end time %s",
 				htmlPageHash, endTime)
 		}
@@ -136,16 +136,16 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", web.ApiHandler)
+	mux.HandleFunc("/", web.APIHandler)
 	httpServ := &http.Server{
-		Addr:    conf.WebserverConfig.HttpPort,
+		Addr:    conf.WebserverConfig.HTTPPort,
 		Handler: mux,
 	}
 
 	go func() {
 		logger.Info(httpServ.ListenAndServe())
 	}()
-	logger.Infof("Listening on port %s", conf.WebserverConfig.HttpPort)
+	logger.Infof("Listening on port %s", conf.WebserverConfig.HTTPPort)
 
 	// Graceful shutdown for HTTP server
 	done := make(chan os.Signal, 1)

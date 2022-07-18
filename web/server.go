@@ -28,11 +28,11 @@ func LoadPage(w http.ResponseWriter, r *http.Request) error {
 		fmt.Fprint(w, errMsg)
 		return errors.New(errMsg)
 	}
-	fmt.Fprintf(w, "%s\n", *page.HtmlPage)
+	fmt.Fprintf(w, "%s\n", *page.HTMLPage)
 	return nil
 }
 
-func ApiHandler(w http.ResponseWriter, r *http.Request) {
+func APIHandler(w http.ResponseWriter, r *http.Request) {
 	logger.Infof("Incoming %s [%v] connection from %s with size %d bytes",
 		r.Method,
 		r.Header,

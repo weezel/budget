@@ -7,13 +7,13 @@ import (
 )
 
 type TeleConfig struct {
-	ApiKey     string
+	APIKey     string
 	WorkingDir string
-	ChannelId  int64
+	ChannelID  int64
 }
 
 type WebserverConfig struct {
-	HttpPort string
+	HTTPPort string
 	Hostname string
 }
 

@@ -20,7 +20,7 @@ import (
 
 var splitPath = regexp.MustCompile(`\s+`)
 
-func displayHelp(username string, channelId int64, bot *tgbotapi.BotAPI) {
+func displayHelp(username string, channelID int64, bot *tgbotapi.BotAPI) {
 	logger.Infof("Help requested by %s", username)
 	helpMsg := "Tunnistan seuraavat komennot:\n\n"
 	helpMsg += "**osto** paikka [vapaaehtoinen pvm muodossa kk-vvvv] xx.xx\n\n"
@@ -29,7 +29,7 @@ func displayHelp(username string, channelId int64, bot *tgbotapi.BotAPI) {
 	helpMsg += "**poista** osto ID\r\n"
 	helpMsg += "**tilastot** kk-vvvv kk-vvvv\r\n"
 	helpMsg += "**velat** tai **velkaa** kk-vvvv\n\n"
-	outMsg := tgbotapi.NewMessage(channelId, helpMsg)
+	outMsg := tgbotapi.NewMessage(channelID, helpMsg)
 	if _, err := bot.Send(outMsg); err != nil {
 		logger.Errorf("sending to channel failed: %s", err)
 	}
@@ -89,14 +89,14 @@ func getPurchasesData(ctx context.Context, username string, hostname string, tok
 
 	htmlPageHash := utils.CalcSha256Sum(htmlPage)
 	shortlivedPage := shortlivedpage.ShortLivedPage{
-		TimeToLiveSeconds: 600,
-		StartTime:         time.Now(),
-		HtmlPage:          &htmlPage,
+		TTLSeconds: 600,
+		StartTime:  time.Now(),
+		HTMLPage:   &htmlPage,
 	}
 	addOk := shortlivedpage.Add(htmlPageHash, shortlivedPage)
 	if addOk {
 		endTime := shortlivedPage.StartTime.Add(
-			time.Duration(shortlivedPage.TimeToLiveSeconds))
+			time.Duration(shortlivedPage.TTLSeconds))
 		logger.Infof("Added shortlived spendings page %s with end time %s",
 			htmlPageHash, endTime)
 	}
@@ -129,14 +129,14 @@ func getStatsTimeSpan(ctx context.Context, hostname string, tokenized []string) 
 
 	htmlPageHash := utils.CalcSha256Sum(htmlPage)
 	shortlivedPage := shortlivedpage.ShortLivedPage{
-		TimeToLiveSeconds: 600,
-		StartTime:         time.Now(),
-		HtmlPage:          &htmlPage,
+		TTLSeconds: 600,
+		StartTime:  time.Now(),
+		HTMLPage:   &htmlPage,
 	}
 	addOk := shortlivedpage.Add(htmlPageHash, shortlivedPage)
 	if addOk {
 		endTime := shortlivedPage.StartTime.Add(
-			time.Duration(shortlivedPage.TimeToLiveSeconds))
+			time.Duration(shortlivedPage.TTLSeconds))
 		logger.Infof("Added shortlived data page %s with end time %s",
 			htmlPageHash, endTime)
 	}
@@ -265,7 +265,7 @@ func SendTelegram(
 	return nil
 }
 
-func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
+func ConnectionHandler(bot *tgbotapi.BotAPI, channelID int64, hostname string) {
 	var command string
 	var lastElem string
 	var err error
@@ -293,88 +293,88 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelId int64, hostname string) {
 		switch command {
 		case "osto":
 			if len(tokenized) < 3 {
-				displayHelp(username, channelId, bot)
+				displayHelp(username, channelID, bot)
 				continue
 			}
 
 			shopName := tokenized[1]
 			msg = handlePurchase(ctx, shopName, lastElem, username, tokenized)
-			outMsg := tgbotapi.NewMessage(channelId, msg)
+			outMsg := tgbotapi.NewMessage(channelID, msg)
 			if err = SendTelegram(bot, outMsg, false); err != nil {
 				logger.Error(err)
 			}
 		case "ostot":
 			if len(tokenized) < 3 {
-				displayHelp(username, channelId, bot)
+				displayHelp(username, channelID, bot)
 				continue
 			}
 
 			msg = getPurchasesData(ctx, username, hostname, tokenized)
-			outMsg := tgbotapi.NewMessage(channelId, msg)
+			outMsg := tgbotapi.NewMessage(channelID, msg)
 			if err = SendTelegram(bot, outMsg, false); err != nil {
 				logger.Error(err)
 			}
 		case "tilastot":
 			if len(tokenized) < 3 {
-				displayHelp(username, channelId, bot)
+				displayHelp(username, channelID, bot)
 				continue
 			}
 
 			msg = getStatsTimeSpan(ctx, hostname, tokenized)
-			outMsg := tgbotapi.NewMessage(channelId, msg)
+			outMsg := tgbotapi.NewMessage(channelID, msg)
 			if err = SendTelegram(bot, outMsg, false); err != nil {
 				logger.Error(err)
 			}
 		case "palkka":
 			if len(tokenized) < 3 {
-				displayHelp(username, channelId, bot)
+				displayHelp(username, channelID, bot)
 				continue
 			}
 
 			msg = handleSalaryInsert(ctx, username, lastElem, tokenized)
-			outMsg := tgbotapi.NewMessage(channelId, msg)
+			outMsg := tgbotapi.NewMessage(channelID, msg)
 			if err = SendTelegram(bot, outMsg, false); err != nil {
 				logger.Error(err)
 			}
 		case "palkat":
 			if len(tokenized) < 2 {
-				displayHelp(username, channelId, bot)
+				displayHelp(username, channelID, bot)
 				continue
 			}
 
 			msg = handleGetSalaries(ctx, tokenized)
-			outMsg := tgbotapi.NewMessage(channelId, msg)
+			outMsg := tgbotapi.NewMessage(channelID, msg)
 			if err = SendTelegram(bot, outMsg, false); err != nil {
 				logger.Error(err)
 			}
 		case "poista":
 			if len(tokenized) < 3 {
-				displayHelp(username, channelId, bot)
+				displayHelp(username, channelID, bot)
 				continue
 			}
 
 			msg, err = handleRemovePurchase(ctx, username, tokenized)
 			if err != nil {
-				displayHelp(username, channelId, bot)
+				displayHelp(username, channelID, bot)
 				continue
 			}
-			outMsg := tgbotapi.NewMessage(channelId, msg)
+			outMsg := tgbotapi.NewMessage(channelID, msg)
 			if err = SendTelegram(bot, outMsg, false); err != nil {
 				logger.Error(err)
 			}
 		case "velat", "velkaa":
 			if len(tokenized) < 2 {
-				displayHelp(username, channelId, bot)
+				displayHelp(username, channelID, bot)
 				continue
 			}
 
 			msg := handleVelat(ctx, tokenized)
-			outMsg := tgbotapi.NewMessage(channelId, msg)
+			outMsg := tgbotapi.NewMessage(channelID, msg)
 			if err = SendTelegram(bot, outMsg, false); err != nil {
 				logger.Error(err)
 			}
 		case "help", "apua":
-			displayHelp(username, channelId, bot)
+			displayHelp(username, channelID, bot)
 			continue
 		}
 

@@ -1,8 +1,8 @@
 [teleconfig]
-ChannelId = -111111111
-ApiKey = "9999999999:aaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbb"
+ChannelID = -111111111
+APIKey = "9999999999:aaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbb"
 WorkingDir = "/home/daa/budget/"
 
 [webserverconfig]
-HttpPort = ":8111"
+HTTPPort = ":8111"
 Hostname = "localhost"

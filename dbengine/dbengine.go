@@ -14,7 +14,7 @@ import (
 	"weezel/budget/utils"
 
 	"github.com/jmoiron/sqlx"
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/mattn/go-sqlite3" // This is intended (silents revive)
 )
 
 var (

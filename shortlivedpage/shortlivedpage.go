@@ -15,9 +15,9 @@ var (
 )
 
 type ShortLivedPage struct {
-	StartTime         time.Time
-	HtmlPage          *[]byte
-	TimeToLiveSeconds int64
+	StartTime  time.Time
+	HTMLPage   *[]byte
+	TTLSeconds int64
 }
 
 func cleaner() {
@@ -27,7 +27,7 @@ func cleaner() {
 	for pageHash, page := range shortLivedPages {
 		endTime := page.StartTime.Add(
 			time.Duration(
-				int64(time.Second) * page.TimeToLiveSeconds))
+				int64(time.Second) * page.TTLSeconds))
 		if time.Now().After(endTime) {
 			logger.Infof("Removing page due timeout: %v [%s]",
 				page,
