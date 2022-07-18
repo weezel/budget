@@ -27,7 +27,6 @@ func init() {
 		PadLevelText:  false,
 		ForceQuote:    false,
 	})
-
 }
 
 // funcCallTracer traces function calls so we can know where
@@ -63,7 +62,7 @@ func SetLoggingToFile(logFilePath string) error {
 	logFileHandle, err := os.OpenFile(
 		loggingFileAbsPath,
 		os.O_APPEND|os.O_CREATE|os.O_RDWR,
-		0600)
+		0o600)
 	if err != nil {
 		return err
 	}
