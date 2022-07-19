@@ -11,7 +11,8 @@ CGO_ENABLED	?= 1
 
 build: test lint
 	CGO_ENABLED=$(CGO_ENABLED) GOOS=linux GOARCH=$(GOARCH) \
-	     $(GO) build $(LDFLAGS) -o $(BINARY)_linux_$(GOARCH)
+	     $(GO) build $(LDFLAGS) -o $(BINARY)_linux_$(GOARCH) \
+	     cmd/telegrambot/main.go
 
 clean:
 	rm -f budget budget_linux_amd64 budget_openbsd_amd64
