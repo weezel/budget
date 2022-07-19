@@ -1,24 +1,51 @@
 package confighandler
 
 import (
+	"reflect"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
-func TestConfigHandler(t *testing.T) {
-	data := []byte(`
-[teleconfig]
-ChannelID = -987654
-APIKey = "abcdefg:1234"
+func TestLoadConfig(t *testing.T) {
+	type args struct {
+		filedata []byte
+	}
+	tests := []struct {
+		name string
+		args args
+		want TomlConfig
+	}{
+		{
+			name: "",
+			args: args{
+				filedata: []byte(`
+				[teleconfig]
+				ChannelID = -987654
+				APIKey = "abcdefg:1234"
+				WorkingDir = "/home/blaa/dingdong"
 
-[webserverconfig]
-HTTPPort = ":8080"
-Hostname = "localhost"
-`)
-	tomlConfig := LoadConfig(data)
-	assert.Equal(t, int64(-987654), tomlConfig.TeleConfig.ChannelID)
-	assert.Equal(t, "abcdefg:1234", tomlConfig.TeleConfig.APIKey)
-	assert.Equal(t, ":8080", tomlConfig.WebserverConfig.HTTPPort)
-	assert.Equal(t, "localhost", tomlConfig.WebserverConfig.Hostname)
+				[webserverconfig]
+				HTTPPort = ":8080"
+				Hostname = "localhost"
+				`),
+			},
+			want: TomlConfig{
+				WebserverConfig: WebserverConfig{
+					HTTPPort: ":8080",
+					Hostname: "localhost",
+				},
+				TeleConfig: TeleConfig{
+					APIKey:     "abcdefg:1234",
+					WorkingDir: "/home/blaa/dingdong",
+					ChannelID:  -987654,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := LoadConfig(tt.args.filedata); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("LoadConfig() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }
