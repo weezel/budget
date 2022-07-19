@@ -13,6 +13,9 @@ build: test lint
 	CGO_ENABLED=$(CGO_ENABLED) GOOS=linux GOARCH=$(GOARCH) \
 	     $(GO) build $(LDFLAGS) -o $(BINARY)_linux_$(GOARCH)
 
+clean:
+	rm -f budget budget_linux_amd64 budget_openbsd_amd64
+
 lint:
 	golangci-lint run ./...
 
@@ -36,6 +39,6 @@ coverage:
 test:
 	go test ./...
 
-clean:
-	rm -f budget budget_linux_amd64 budget_openbsd_amd64
-
+.PHONY: sqlc
+sqlc:
+	sqlc generate
