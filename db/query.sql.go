@@ -8,88 +8,146 @@ package db
 import (
 	"context"
 	"time"
-
-	"github.com/jackc/pgtype"
 )
 
-const addExpense = `-- name: AddExpense :exec
-INSERT INTO budget(
+const addExpense = `-- name: AddExpense :one
+
+INSERT INTO budget_schema.expense(
 	username,
 	shop_name,
 	category,
 	price,
 	expense_date
-) VALUES (
-	$1, $2, $3, $4, $5
-)
+) VALUES ($1, $2, $3, $4, $5) RETURNING id
 `
 
 type AddExpenseParams struct {
-	Username    string         `json:"username"`
-	ShopName    string         `json:"shop_name"`
-	Category    string         `json:"category"`
-	Price       pgtype.Numeric `json:"price"`
-	ExpenseDate time.Time      `json:"expense_date"`
+	Username    string    `json:"username"`
+	ShopName    string    `json:"shop_name"`
+	Category    string    `json:"category"`
+	Price       float64   `json:"price"`
+	ExpenseDate time.Time `json:"expense_date"`
 }
 
-func (q *Queries) AddExpense(ctx context.Context, arg AddExpenseParams) error {
-	_, err := q.db.Exec(ctx, addExpense,
+//
+// Expenses
+//
+func (q *Queries) AddExpense(ctx context.Context, arg AddExpenseParams) (int32, error) {
+	row := q.db.QueryRow(ctx, addExpense,
 		arg.Username,
 		arg.ShopName,
 		arg.Category,
 		arg.Price,
 		arg.ExpenseDate,
 	)
-	return err
+	var id int32
+	err := row.Scan(&id)
+	return id, err
 }
 
-const addSalary = `-- name: AddSalary :exec
-INSERT INTO salary(
-	username,
-	salary,
-	store_date
-) VALUES (
-	$1, $2, $3
-)
+const addSalary = `-- name: AddSalary :one
+
+INSERT INTO budget_schema.salary(username, salary, store_date)
+	VALUES($1, $2, $3) RETURNING id
 `
 
 type AddSalaryParams struct {
-	Username  string         `json:"username"`
-	Salary    pgtype.Numeric `json:"salary"`
-	StoreDate time.Time      `json:"store_date"`
+	Username  string    `json:"username"`
+	Salary    float64   `json:"salary"`
+	StoreDate time.Time `json:"store_date"`
 }
 
-func (q *Queries) AddSalary(ctx context.Context, arg AddSalaryParams) error {
-	_, err := q.db.Exec(ctx, addSalary, arg.Username, arg.Salary, arg.StoreDate)
-	return err
+//
+// Salaries
+//
+func (q *Queries) AddSalary(ctx context.Context, arg AddSalaryParams) (int32, error) {
+	row := q.db.QueryRow(ctx, addSalary, arg.Username, arg.Salary, arg.StoreDate)
+	var id int32
+	err := row.Scan(&id)
+	return id, err
 }
 
-const getExpenses = `-- name: GetExpenses :many
-SELECT username, expense_date, SUM(price)::float AS expenses_sum FROM budget
-	GROUP BY expense_date, username
-	HAVING expense_date = date_trunc('month', $1)
-	ORDER BY username
+const deleteExpenseByID = `-- name: DeleteExpenseByID :one
+DELETE FROM budget_schema.expense
+	WHERE id = $1 AND username = $2
+	RETURNING id, username, shop_name, category, price, expense_date
 `
 
-type GetExpensesRow struct {
+type DeleteExpenseByIDParams struct {
+	ID       int32  `json:"id"`
+	Username string `json:"username"`
+}
+
+func (q *Queries) DeleteExpenseByID(ctx context.Context, arg DeleteExpenseByIDParams) (*BudgetSchemaExpense, error) {
+	row := q.db.QueryRow(ctx, deleteExpenseByID, arg.ID, arg.Username)
+	var i BudgetSchemaExpense
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.ShopName,
+		&i.Category,
+		&i.Price,
+		&i.ExpenseDate,
+	)
+	return &i, err
+}
+
+const deleteSalaryByID = `-- name: DeleteSalaryByID :one
+DELETE FROM budget_schema.salary
+	WHERE id = $1 AND username = $2
+	RETURNING id, username, salary, store_date
+`
+
+type DeleteSalaryByIDParams struct {
+	ID       int32  `json:"id"`
+	Username string `json:"username"`
+}
+
+func (q *Queries) DeleteSalaryByID(ctx context.Context, arg DeleteSalaryByIDParams) (*BudgetSchemaSalary, error) {
+	row := q.db.QueryRow(ctx, deleteSalaryByID, arg.ID, arg.Username)
+	var i BudgetSchemaSalary
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.Salary,
+		&i.StoreDate,
+	)
+	return &i, err
+}
+
+const getAggrExpensesByTimespan = `-- name: GetAggrExpensesByTimespan :many
+SELECT username, date_trunc('month', expense_date)::date AS months, SUM(price)::float AS expenses_sum
+	FROM budget_schema.expense
+	WHERE expense_date BETWEEN $1::date
+		AND $2::date + interval '1 month - 1 day'
+	GROUP BY username, months, shop_name
+	ORDER BY months, username
+`
+
+type GetAggrExpensesByTimespanParams struct {
+	StartTime time.Time `json:"start_time"`
+	EndTime   time.Time `json:"end_time"`
+}
+
+type GetAggrExpensesByTimespanRow struct {
 	Username    string    `json:"username"`
-	ExpenseDate time.Time `json:"expense_date"`
+	Months      time.Time `json:"months"`
 	ExpensesSum float64   `json:"expenses_sum"`
 }
 
-func (q *Queries) GetExpenses(ctx context.Context, dateTrunc interface{}) ([]GetExpensesRow, error) {
-	rows, err := q.db.Query(ctx, getExpenses, dateTrunc)
+func (q *Queries) GetAggrExpensesByTimespan(ctx context.Context, arg GetAggrExpensesByTimespanParams) ([]*GetAggrExpensesByTimespanRow, error) {
+	rows, err := q.db.Query(ctx, getAggrExpensesByTimespan, arg.StartTime, arg.EndTime)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetExpensesRow
+	var items []*GetAggrExpensesByTimespanRow
 	for rows.Next() {
-		var i GetExpensesRow
-		if err := rows.Scan(&i.Username, &i.ExpenseDate, &i.ExpensesSum); err != nil {
+		var i GetAggrExpensesByTimespanRow
+		if err := rows.Scan(&i.Username, &i.Months, &i.ExpensesSum); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
+		items = append(items, &i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -97,30 +155,35 @@ func (q *Queries) GetExpenses(ctx context.Context, dateTrunc interface{}) ([]Get
 	return items, nil
 }
 
-const getMonthlyExpenses = `-- name: GetMonthlyExpenses :many
-SELECT id, username, expense_date, shop_name, price FROM budget
-	GROUP BY username, expense_date, shop_name, price
-	HAVING expense_date = $1
+const getExpensesByTimespan = `-- name: GetExpensesByTimespan :many
+SELECT id, username, expense_date, shop_name, price FROM budget_schema.expense
+	WHERE expense_date BETWEEN $1::date
+		AND $2::date + interval '1 month - 1 day'
 	ORDER BY username, expense_date, shop_name, price
 `
 
-type GetMonthlyExpensesRow struct {
-	ID          int32          `json:"id"`
-	Username    string         `json:"username"`
-	ExpenseDate time.Time      `json:"expense_date"`
-	ShopName    string         `json:"shop_name"`
-	Price       pgtype.Numeric `json:"price"`
+type GetExpensesByTimespanParams struct {
+	StartTime time.Time `json:"start_time"`
+	EndTime   time.Time `json:"end_time"`
 }
 
-func (q *Queries) GetMonthlyExpenses(ctx context.Context, expenseDate time.Time) ([]GetMonthlyExpensesRow, error) {
-	rows, err := q.db.Query(ctx, getMonthlyExpenses, expenseDate)
+type GetExpensesByTimespanRow struct {
+	ID          int32     `json:"id"`
+	Username    string    `json:"username"`
+	ExpenseDate time.Time `json:"expense_date"`
+	ShopName    string    `json:"shop_name"`
+	Price       float64   `json:"price"`
+}
+
+func (q *Queries) GetExpensesByTimespan(ctx context.Context, arg GetExpensesByTimespanParams) ([]*GetExpensesByTimespanRow, error) {
+	rows, err := q.db.Query(ctx, getExpensesByTimespan, arg.StartTime, arg.EndTime)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetMonthlyExpensesRow
+	var items []*GetExpensesByTimespanRow
 	for rows.Next() {
-		var i GetMonthlyExpensesRow
+		var i GetExpensesByTimespanRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Username,
@@ -130,7 +193,7 @@ func (q *Queries) GetMonthlyExpenses(ctx context.Context, expenseDate time.Time)
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
+		items = append(items, &i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -138,38 +201,38 @@ func (q *Queries) GetMonthlyExpenses(ctx context.Context, expenseDate time.Time)
 	return items, nil
 }
 
-const getMonthlySalaries = `-- name: GetMonthlySalaries :many
-SELECT username, salary, store_date FROM salary
+const getSalariesByTimespan = `-- name: GetSalariesByTimespan :many
+SELECT username, salary, date_trunc('month', store_date)::date AS months FROM budget_schema.salary
 	WHERE store_date BETWEEN date_trunc('month', $1::date)::date
-		AND (date_trunc('month', $2::date) + interval '1 month - 1 day')::date
-	GROUP BY username, store_date, salary
-	ORDER BY username, store_date
+		AND date_trunc('month', $2::date)::date + interval '1 month - 1 day'
+	GROUP BY username, months, salary
+	ORDER BY username, months
 `
 
-type GetMonthlySalariesParams struct {
-	StartMonth time.Time `json:"StartMonth"`
-	EndMonth   time.Time `json:"EndMonth"`
+type GetSalariesByTimespanParams struct {
+	StartTime time.Time `json:"start_time"`
+	EndTime   time.Time `json:"end_time"`
 }
 
-type GetMonthlySalariesRow struct {
-	Username  string         `json:"username"`
-	Salary    pgtype.Numeric `json:"salary"`
-	StoreDate time.Time      `json:"store_date"`
+type GetSalariesByTimespanRow struct {
+	Username string    `json:"username"`
+	Salary   float64   `json:"salary"`
+	Months   time.Time `json:"months"`
 }
 
-func (q *Queries) GetMonthlySalaries(ctx context.Context, arg GetMonthlySalariesParams) ([]GetMonthlySalariesRow, error) {
-	rows, err := q.db.Query(ctx, getMonthlySalaries, arg.StartMonth, arg.EndMonth)
+func (q *Queries) GetSalariesByTimespan(ctx context.Context, arg GetSalariesByTimespanParams) ([]*GetSalariesByTimespanRow, error) {
+	rows, err := q.db.Query(ctx, getSalariesByTimespan, arg.StartTime, arg.EndTime)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetMonthlySalariesRow
+	var items []*GetSalariesByTimespanRow
 	for rows.Next() {
-		var i GetMonthlySalariesRow
-		if err := rows.Scan(&i.Username, &i.Salary, &i.StoreDate); err != nil {
+		var i GetSalariesByTimespanRow
+		if err := rows.Scan(&i.Username, &i.Salary, &i.Months); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
+		items = append(items, &i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -177,68 +240,73 @@ func (q *Queries) GetMonthlySalaries(ctx context.Context, arg GetMonthlySalaries
 	return items, nil
 }
 
-const getSalaryByMonth = `-- name: GetSalaryByMonth :one
-SELECT salary FROM salary
+const getUserSalaryByMonth = `-- name: GetUserSalaryByMonth :one
+SELECT salary FROM budget_schema.salary
 	WHERE username = $1
-		AND store_date = $2
-	LIMIT 1
+	AND store_date = date_trunc('month', $2::date)
 `
 
-type GetSalaryByMonthParams struct {
-	Username  string    `json:"username"`
-	StoreDate time.Time `json:"store_date"`
+type GetUserSalaryByMonthParams struct {
+	Username string    `json:"username"`
+	Month    time.Time `json:"month"`
 }
 
-func (q *Queries) GetSalaryByMonth(ctx context.Context, arg GetSalaryByMonthParams) (pgtype.Numeric, error) {
-	row := q.db.QueryRow(ctx, getSalaryByMonth, arg.Username, arg.StoreDate)
-	var salary pgtype.Numeric
+func (q *Queries) GetUserSalaryByMonth(ctx context.Context, arg GetUserSalaryByMonthParams) (float64, error) {
+	row := q.db.QueryRow(ctx, getUserSalaryByMonth, arg.Username, arg.Month)
+	var salary float64
 	err := row.Scan(&salary)
 	return salary, err
 }
 
-const getSpendingTimespan = `-- name: GetSpendingTimespan :many
-SELECT b.username, b.expense_date AS expense_date, SUM(price)::float AS expenses_sum, s.salary
-		FROM budget AS b
-        INNER JOIN salary AS s ON b.username = s.username
-		AND s.store_date = b.expense_date
+const statisticsAggrByTimespan = `-- name: StatisticsAggrByTimespan :many
+
+SELECT b.username, date_trunc('month', b.expense_date)::date AS event_date, SUM(price)::float AS expenses_sum, s.salary, 0.0::float AS owes
+		FROM budget_schema.expense AS b
+        JOIN budget_schema.salary AS s ON b.username = s.username
+		AND date_trunc('month', s.store_date) = date_trunc('month', b.expense_date)
 	WHERE b.expense_date BETWEEN date_trunc('month', $1::date)::date
-		AND (date_trunc('month', $2::date) + interval '1 month - 1 day')::date
-		AND s.store_date != NULL
-		AND b.expense_date != NULL
-	GROUP BY b.username, b.expense_date
-	ORDER BY b.username, b.expense_date, expenses
+		AND date_trunc('month', $2::date)::date + interval '1 month - 1 day'
+		OR s.store_date BETWEEN date_trunc('month', $1::date)::date
+		AND date_trunc('month', $2::date)::date + interval '1 month - 1 day'
+	GROUP BY b.username, date_trunc('month', b.expense_date), s.salary
+	ORDER BY b.username, date_trunc('month', b.expense_date), expenses_sum
 `
 
-type GetSpendingTimespanParams struct {
-	StartMonth time.Time `json:"StartMonth"`
-	EndMonth   time.Time `json:"EndMonth"`
+type StatisticsAggrByTimespanParams struct {
+	StartTime time.Time `json:"start_time"`
+	EndTime   time.Time `json:"end_time"`
 }
 
-type GetSpendingTimespanRow struct {
-	Username    string         `json:"username"`
-	ExpenseDate time.Time      `json:"expense_date"`
-	ExpensesSum float64        `json:"expenses_sum"`
-	Salary      pgtype.Numeric `json:"salary"`
+type StatisticsAggrByTimespanRow struct {
+	Username    string    `json:"username"`
+	EventDate   time.Time `json:"event_date"`
+	ExpensesSum float64   `json:"expenses_sum"`
+	Salary      float64   `json:"salary"`
+	Owes        float64   `json:"owes"`
 }
 
-func (q *Queries) GetSpendingTimespan(ctx context.Context, arg GetSpendingTimespanParams) ([]GetSpendingTimespanRow, error) {
-	rows, err := q.db.Query(ctx, getSpendingTimespan, arg.StartMonth, arg.EndMonth)
+//
+// Miscellaneous
+//
+func (q *Queries) StatisticsAggrByTimespan(ctx context.Context, arg StatisticsAggrByTimespanParams) ([]*StatisticsAggrByTimespanRow, error) {
+	rows, err := q.db.Query(ctx, statisticsAggrByTimespan, arg.StartTime, arg.EndTime)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetSpendingTimespanRow
+	var items []*StatisticsAggrByTimespanRow
 	for rows.Next() {
-		var i GetSpendingTimespanRow
+		var i StatisticsAggrByTimespanRow
 		if err := rows.Scan(
 			&i.Username,
-			&i.ExpenseDate,
+			&i.EventDate,
 			&i.ExpensesSum,
 			&i.Salary,
+			&i.Owes,
 		); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
+		items = append(items, &i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

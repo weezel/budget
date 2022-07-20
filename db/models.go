@@ -6,22 +6,20 @@ package db
 
 import (
 	"time"
-
-	"github.com/jackc/pgtype"
 )
 
-type Budget struct {
-	ID          int32          `json:"id"`
-	Username    string         `json:"username"`
-	ShopName    string         `json:"shop_name"`
-	Category    string         `json:"category"`
-	Price       pgtype.Numeric `json:"price"`
-	ExpenseDate time.Time      `json:"expense_date"`
+type BudgetSchemaExpense struct {
+	ID          int32     `json:"id"`
+	Username    string    `json:"username"`
+	ShopName    string    `json:"shop_name"`
+	Category    string    `json:"category"`
+	Price       float64   `json:"price"`
+	ExpenseDate time.Time `json:"expense_date"`
 }
 
-type Salary struct {
-	ID        int32          `json:"id"`
-	Username  string         `json:"username"`
-	Salary    pgtype.Numeric `json:"salary"`
-	StoreDate time.Time      `json:"store_date"`
+type BudgetSchemaSalary struct {
+	ID        int32     `json:"id"`
+	Username  string    `json:"username"`
+	Salary    float64   `json:"salary"`
+	StoreDate time.Time `json:"store_date"`
 }

@@ -6,19 +6,27 @@ package db
 
 import (
 	"context"
-	"time"
-
-	"github.com/jackc/pgtype"
 )
 
 type Querier interface {
-	AddExpense(ctx context.Context, arg AddExpenseParams) error
-	AddSalary(ctx context.Context, arg AddSalaryParams) error
-	GetExpenses(ctx context.Context, dateTrunc interface{}) ([]GetExpensesRow, error)
-	GetMonthlyExpenses(ctx context.Context, expenseDate time.Time) ([]GetMonthlyExpensesRow, error)
-	GetMonthlySalaries(ctx context.Context, arg GetMonthlySalariesParams) ([]GetMonthlySalariesRow, error)
-	GetSalaryByMonth(ctx context.Context, arg GetSalaryByMonthParams) (pgtype.Numeric, error)
-	GetSpendingTimespan(ctx context.Context, arg GetSpendingTimespanParams) ([]GetSpendingTimespanRow, error)
+	//
+	// Expenses
+	//
+	AddExpense(ctx context.Context, arg AddExpenseParams) (int32, error)
+	//
+	// Salaries
+	//
+	AddSalary(ctx context.Context, arg AddSalaryParams) (int32, error)
+	DeleteExpenseByID(ctx context.Context, arg DeleteExpenseByIDParams) (*BudgetSchemaExpense, error)
+	DeleteSalaryByID(ctx context.Context, arg DeleteSalaryByIDParams) (*BudgetSchemaSalary, error)
+	GetAggrExpensesByTimespan(ctx context.Context, arg GetAggrExpensesByTimespanParams) ([]*GetAggrExpensesByTimespanRow, error)
+	GetExpensesByTimespan(ctx context.Context, arg GetExpensesByTimespanParams) ([]*GetExpensesByTimespanRow, error)
+	GetSalariesByTimespan(ctx context.Context, arg GetSalariesByTimespanParams) ([]*GetSalariesByTimespanRow, error)
+	GetUserSalaryByMonth(ctx context.Context, arg GetUserSalaryByMonthParams) (float64, error)
+	//
+	// Miscellaneous
+	//
+	StatisticsAggrByTimespan(ctx context.Context, arg StatisticsAggrByTimespanParams) ([]*StatisticsAggrByTimespanRow, error)
 }
 
 var _ Querier = (*Queries)(nil)
