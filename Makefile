@@ -56,6 +56,9 @@ dev-db:
 
 start-devdb: dev-db create-db dev-migrations
 
+sqlite-psql-migrate:
+	@go run cmd/sqlite2postgres/main.go
+
 stop-devdb:
 	@$(DOCKER) stop budgetdb_dev
 
