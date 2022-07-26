@@ -8,6 +8,7 @@ BINARY		?= budget
 CGO_ENABLED	?= 1
 
 PSQL_CLIENT	?= psql
+PG_DUMP		?= pg_dump
 POSTGRES_VER	?= 14.4-alpine
 DB_HOST		?= $(shell awk -F '=' '/^DB_HOST/ { print $$NF }' .env)
 DB_PORT		?= $(shell awk -F '=' '/^DB_PORT/ { print $$NF }' .env)
@@ -44,6 +45,14 @@ dev-migrations:
 create-db:
 	@$(PSQL_CLIENT) postgresql://$(DB_USERNAME):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/ \
 		-q -c "CREATE DATABASE $(DB_NAME) OWNER postgres ENCODING UTF8;"
+
+db-dump:
+	$(PG_DUMP) postgresql://$(DB_USERNAME):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME) \
+		> $(DB_NAME)_dump_$(shell date "+%Y-%m-%d_%H:%M:%S").sql
+
+db-restore:
+	$(PSQL_CLIENT) postgresql://$(DB_USERNAME):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME) \
+		-q -f $(RESTORE_FILE)
 
 dev-db:
 	@$(DOCKER) run \
