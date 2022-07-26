@@ -7,38 +7,38 @@ import (
 	"weezel/budget/dbengine"
 )
 
-type TemplateType int
-
-const (
-	MontlySpendingsTemplate TemplateType = iota
-	MonthlyDataTemplate     TemplateType = iota
-)
-
-//go:embed monthlydata.gohtml
+//go:embed stats.gohtml
 var dataTemplateFS embed.FS
 
-//go:embed monthlyspendings.gohtml
-var spendingsTemplateFS embed.FS
+//go:embed expenses.gohtml
+var expensesTemplateFS embed.FS
 
-func HTML(spending dbengine.SpendingHTMLOutput, templateType TemplateType) ([]byte, error) {
-	var tpl *template.Template
-	var err error
-	var filename string
-	buf := bytes.Buffer{}
+func RenderStatsHTML(templateVars dbengine.StatisticsVars) ([]byte, error) {
+	filename := "stats.gohtml"
 
-	switch templateType {
-	case MonthlyDataTemplate:
-		filename = "monthlydata.gohtml"
-		tpl, err = template.ParseFS(dataTemplateFS, filename)
-	case MontlySpendingsTemplate:
-		filename = "monthlyspendings.gohtml"
-		tpl, err = template.ParseFS(spendingsTemplateFS, filename)
-	}
+	tpl, err := template.ParseFS(dataTemplateFS, filename)
 	if err != nil {
 		return []byte{}, err
 	}
 
-	if err = tpl.ExecuteTemplate(&buf, filename, spending); err != nil {
+	buf := bytes.Buffer{}
+	if err = tpl.ExecuteTemplate(&buf, filename, templateVars); err != nil {
+		return []byte{}, err
+	}
+
+	return buf.Bytes(), nil
+}
+
+func RenderExpensesHTML(templateVars dbengine.ExpensesVars) ([]byte, error) {
+	filename := "expenses.html"
+
+	tpl, err := template.ParseFS(expensesTemplateFS, filename)
+	if err != nil {
+		return []byte{}, err
+	}
+
+	buf := bytes.Buffer{}
+	if err = tpl.ExecuteTemplate(&buf, filename, templateVars); err != nil {
 		return []byte{}, err
 	}
 
