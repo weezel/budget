@@ -4,7 +4,6 @@ go 1.18
 
 require (
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
-	github.com/golobby/dotenv v1.3.1
 	github.com/google/go-cmp v0.5.5
 	github.com/jackc/pgconn v1.12.1
 	github.com/jackc/pgx/v4 v4.16.1
@@ -17,7 +16,6 @@ require (
 )
 
 require (
-	github.com/golobby/cast v1.3.0 // indirect
 	github.com/jackc/pgtype v1.11.0 // indirect
 	github.com/jackc/puddle v1.2.1 // indirect
 	github.com/pkg/errors v0.8.1 // indirect

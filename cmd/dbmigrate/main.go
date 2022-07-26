@@ -4,11 +4,12 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
+	"weezel/budget/confighandler"
 
-	"github.com/golobby/dotenv"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/pressly/goose"
 )
@@ -16,16 +17,9 @@ import (
 var (
 	rollbackAll     bool
 	migrationStatus bool
+	configFilePath  string
 	wd              string
 )
-
-type dbConfig struct {
-	username string `env:"DB_USERNAME"`
-	password string `env:"DB_PASSWORD"`
-	hostname string `env:"DB_HOST"`
-	port     string `env:"DB_PORT"`
-	dbName   string `env:"DB_NAME"`
-}
 
 func init() {
 	log.SetFlags(0)
@@ -37,39 +31,27 @@ func init() {
 	}
 }
 
-func validateEnvVars(dbConf dbConfig) {
-	if dbConf.username == "" {
-		log.Fatal("Missing DB_USERNAME")
-	}
-	if dbConf.password == "" {
-		log.Fatal("Missing DB_PASSWORD")
-	}
-	if dbConf.hostname == "" {
-		log.Fatal("Missing DB_HOST")
-	}
-	if dbConf.port == "" {
-		log.Fatal("Missing DB_PORT")
-	}
-}
-
 func main() {
 	flag.BoolVar(&rollbackAll, "r", false, "Rollback all migrations")
 	flag.BoolVar(&migrationStatus, "s", false, "Show status of migrations")
+	flag.StringVar(&configFilePath, "f", "budget.toml", "Configuration file")
 	flag.Parse()
 
-	dbConf := dbConfig{}
-	fhandle, err := os.Open(".env")
+	configFile, err := ioutil.ReadFile(filepath.Join(wd, configFilePath))
 	if err != nil {
 		panic(err)
 	}
-	err = dotenv.NewDecoder(fhandle).Decode(&dbConf)
+	conf, err := confighandler.LoadConfig(configFile)
 	if err != nil {
 		panic(err)
 	}
-	validateEnvVars(dbConf)
 
 	psqlConfig := fmt.Sprintf("user=%s password=%s host=%s port=%s dbname=%s sslmode=disable",
-		dbConf.username, dbConf.password, dbConf.hostname, dbConf.port, dbConf.dbName)
+		conf.Postgres.Username,
+		conf.Postgres.Password,
+		conf.Postgres.Hostname,
+		conf.Postgres.Port,
+		conf.Postgres.Database)
 	dbConn, err := sql.Open("pgx", psqlConfig)
 	if err != nil {
 		log.Fatal(err)

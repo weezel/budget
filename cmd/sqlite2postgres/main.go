@@ -26,10 +26,12 @@ deleting one file will be enough. Bear with me.
 import (
 	"context"
 	"flag"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"time"
+	"weezel/budget/confighandler"
 	"weezel/budget/db"
 	"weezel/budget/dbengine"
 
@@ -39,9 +41,9 @@ import (
 )
 
 var (
-	wd           string
-	sqliteDBPath string
-	envFilePath  string
+	wd             string
+	sqliteDBPath   string
+	configFilePath string
 )
 
 type BudgetRow struct {
@@ -98,7 +100,7 @@ func main() {
 	ctx := context.Background()
 
 	flag.StringVar(&sqliteDBPath, "d", "budget.db", "SQLite database path")
-	flag.StringVar(&envFilePath, "e", ".", ".env file path")
+	flag.StringVar(&configFilePath, "f", "budget.toml", "Configuration file")
 	flag.Parse()
 
 	if sqliteDBPath == "" {
@@ -106,7 +108,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	postgresDB, err := dbengine.InitPostgresConnection(ctx, envFilePath)
+	configFile, err := ioutil.ReadFile(filepath.Join(wd, configFilePath))
+	if err != nil {
+		panic(err)
+	}
+	conf, err := confighandler.LoadConfig(configFile)
+	if err != nil {
+		panic(err)
+	}
+
+	postgresDB, err := dbengine.New(ctx, conf.Postgres)
 	if err != nil {
 		panic(err)
 	}
