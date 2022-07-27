@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -9,16 +8,17 @@ import (
 	"os"
 	"path/filepath"
 	"weezel/budget/confighandler"
+	"weezel/budget/dbengine"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/pressly/goose"
 )
 
 var (
-	rollbackAll     bool
-	migrationStatus bool
-	configFilePath  string
-	wd              string
+	rollbackAll    bool
+	showStatus     bool
+	configFilePath string
+	wd             string
 )
 
 func init() {
@@ -33,7 +33,7 @@ func init() {
 
 func main() {
 	flag.BoolVar(&rollbackAll, "r", false, "Rollback all migrations")
-	flag.BoolVar(&migrationStatus, "s", false, "Show status of migrations")
+	flag.BoolVar(&showStatus, "s", false, "Show status of migrations")
 	flag.StringVar(&configFilePath, "f", "budget.toml", "Configuration file")
 	flag.Parse()
 
@@ -46,21 +46,15 @@ func main() {
 		panic(err)
 	}
 
-	psqlConfig := fmt.Sprintf("user=%s password=%s host=%s port=%s dbname=%s sslmode=disable",
-		conf.Postgres.Username,
-		conf.Postgres.Password,
-		conf.Postgres.Hostname,
-		conf.Postgres.Port,
-		conf.Postgres.Database)
-	dbConn, err := sql.Open("pgx", psqlConfig)
+	dbConn, err := dbengine.DBConnForMigrations(conf)
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 	defer dbConn.Close()
 
 	schemasDir := filepath.Join(wd, "sqlc/schemas")
 
-	if migrationStatus {
+	if showStatus {
 		if err = goose.Status(dbConn, schemasDir); err != nil {
 			fmt.Println(err)
 		}
