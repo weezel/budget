@@ -15,7 +15,7 @@ func LoadPage(w http.ResponseWriter, r *http.Request) error {
 		fmt.Fprintf(w, "Error parsing form\r\n")
 		return nil
 	}
-	logger.Infof("Received forms: %v\n", r.PostForm)
+	logger.Infof("Received forms: %v", r.PostForm)
 	receivedPageHash := template.HTMLEscapeString(r.FormValue("page_hash"))
 	if len(receivedPageHash) < 1 {
 		fmt.Fprintf(w, "Error, empty message\r\n")
