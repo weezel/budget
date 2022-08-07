@@ -17,19 +17,15 @@ import (
 	"weezel/budget/confighandler"
 	"weezel/budget/dbengine"
 	"weezel/budget/logger"
-	"weezel/budget/outputs"
 	"weezel/budget/shortlivedpage"
 	"weezel/budget/telegramhandler"
-	"weezel/budget/utils"
 	"weezel/budget/web"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/pressly/goose"
 )
 
-var (
-	localRun       bool
-	configFileName string
-)
+var configFileName string
 
 // setWorkingDirectory changes working directory to same where
 // the executable is
@@ -38,7 +34,7 @@ func setWorkingDirectory(workdirPath string) string {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	cdwPath := path.Dir(absPath + "/")
+	cdwPath := path.Dir(absPath)
 	if err := os.Chdir(cdwPath); err != nil {
 		logger.Fatal(err)
 	}
@@ -48,11 +44,30 @@ func setWorkingDirectory(workdirPath string) string {
 	return trimmed + "/"
 }
 
+func dbMigrations(conf confighandler.TomlConfig) error {
+	dbConn, err := dbengine.DBConnForMigrations(conf)
+	if err != nil {
+		return err
+	}
+	defer dbConn.Close()
+
+	schemasDir := filepath.Join(conf.General.WorkingDir, "sqlc/schemas")
+
+	// Do the DB Migrations
+	// goose.SetLogger(&logrus.Logger{}) // FIXME
+	if err := goose.Status(dbConn, schemasDir); err != nil {
+		return err
+	}
+	if err := goose.Up(dbConn, schemasDir); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func main() {
 	ctx := context.Background()
-	var err error
 
-	flag.BoolVar(&localRun, "l", false, "Local run")
 	flag.StringVar(&configFileName, "f", "", "Config file name")
 	flag.Parse()
 
@@ -61,13 +76,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	configFile, err := ioutil.ReadFile(filepath.Clean(configFileName))
+	wd, _ := os.Getwd()
+
+	configFile, err := ioutil.ReadFile(filepath.Join(wd, configFileName))
 	if err != nil {
 		log.Panic(err)
 	}
-	conf := confighandler.LoadConfig(configFile)
+	conf, err := confighandler.LoadConfig(configFile)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	cwd := setWorkingDirectory(conf.TeleConfig.WorkingDir)
+	cwd := setWorkingDirectory(conf.General.WorkingDir)
 
 	err = logger.SetLoggingToFile(filepath.Join(cwd, "budget.log"))
 	if err != nil {
@@ -77,75 +97,43 @@ func main() {
 		logger.CloseLogFile()
 	}()
 
+	// Perform database migrations
+	err = dbMigrations(conf)
+	if err != nil {
+		logger.Fatal(err)
+	}
+
 	// protector.Protect(filepath.Join(cwd, "/"))
 
-	_, err = dbengine.New(filepath.Join(cwd, "budget.db"))
+	_, err = dbengine.New(ctx, conf.Postgres)
 	if err != nil {
 		logger.Fatal(err)
 	}
 
 	shortlivedpage.InitScheduler()
 
-	if !localRun {
-		bot, err := tgbotapi.NewBotAPI(conf.TeleConfig.APIKey)
-		if err != nil {
-			logger.Fatalf("Couldn't create a new bot: %s", err)
-		}
-		bot.Debug = false
-		logger.Infof("Using sername: %s", bot.Self.UserName)
-		go telegramhandler.ConnectionHandler(
-			bot,
-			conf.TeleConfig.ChannelID,
-			conf.WebserverConfig.Hostname)
-	} else {
-		// Run locally, hence without Telegram
-		startMonth := utils.GetDate([]string{"03-2022"}, "01-2006")
-		endMonth := utils.GetDate([]string{"03-2022"}, "01-2006")
-
-		monthlyStats, err := dbengine.GetMonthlyPurchases(ctx, startMonth, endMonth)
-		if err != nil {
-			logger.Fatal("Tilastojen hakemisessa ongelmaa")
-		}
-
-		spendings := dbengine.SpendingHTMLOutput{
-			From:      startMonth,
-			To:        endMonth,
-			Spendings: monthlyStats,
-		}
-		htmlPage, err := outputs.HTML(spendings, outputs.MontlySpendingsTemplate)
-		if err != nil {
-			logger.Fatalf("Sivun näyttämisessä ongelmaa: %s", err)
-		}
-
-		htmlPageHash := utils.CalcSha256Sum(htmlPage)
-		shortlivedPage := shortlivedpage.ShortLivedPage{
-			TTLSeconds: 600,
-			StartTime:  time.Now(),
-			HTMLPage:   &htmlPage,
-		}
-		addOk := shortlivedpage.Add(htmlPageHash, shortlivedPage)
-		if addOk {
-			endTime := shortlivedPage.StartTime.Add(
-				time.Duration(shortlivedPage.TTLSeconds))
-			logger.Infof("Added shortlived data page %s with end time %s",
-				htmlPageHash, endTime)
-		}
-
-		fmt.Printf("Tilastot saatavilla 10min ajan täällä: http://127.0.0.1:8111/statistics?page_hash=%s",
-			htmlPageHash)
+	bot, err := tgbotapi.NewBotAPI(conf.Telegram.APIKey)
+	if err != nil {
+		logger.Fatalf("Couldn't create a new bot: %s", err)
 	}
+	bot.Debug = false
+	logger.Infof("Using sername: %s", bot.Self.UserName)
+	go telegramhandler.ConnectionHandler(
+		bot,
+		conf.Telegram.ChannelID,
+		conf.Webserver.Hostname)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", web.APIHandler)
 	httpServ := &http.Server{
-		Addr:    conf.WebserverConfig.HTTPPort,
+		Addr:    conf.Webserver.HTTPPort,
 		Handler: mux,
 	}
 
 	go func() {
 		logger.Info(httpServ.ListenAndServe())
 	}()
-	logger.Infof("Listening on port %s", conf.WebserverConfig.HTTPPort)
+	logger.Infof("Listening on port %s", conf.Webserver.HTTPPort)
 
 	// Graceful shutdown for HTTP server
 	done := make(chan os.Signal, 1)
