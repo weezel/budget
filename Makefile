@@ -70,11 +70,11 @@ dev-db:
 
 start-devdb: dev-db create-db dev-migrations
 
-sqlite-psql-migrate:
-	@go run cmd/sqlite2postgres/main.go
-
 stop-devdb:
 	@$(DOCKER) stop budgetdb_dev
+
+sqlite-psql-migrate:
+	@go run cmd/sqlite2postgres/main.go
 
 obsd:
 	CGO_ENABLED=$(CGO_ENABLED) GOOS=openbsd GOARCH=$(GOARCH) \
