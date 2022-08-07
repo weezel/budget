@@ -3,24 +3,10 @@ package dbengine
 import (
 	"database/sql"
 	"fmt"
-	"time"
 	"weezel/budget/confighandler"
-	"weezel/budget/db"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
 )
-
-type ExpensesVars struct {
-	From      time.Time
-	To        time.Time
-	Spendings []*db.GetExpensesByTimespanRow
-}
-
-type StatisticsVars struct {
-	From      time.Time
-	To        time.Time
-	Spendings []*db.StatisticsByTimespanRow
-}
 
 // DBConnForMigrations this connection type is only to be used with database migrations.
 func DBConnForMigrations(conf confighandler.TomlConfig) (*sql.DB, error) {
