@@ -60,7 +60,8 @@ dev-db:
 		--rm \
 		-e POSTGRES_PASSWORD=$(DB_PASSWORD) \
 		-p $(DB_PORT):$(DB_PORT) \
-		-d postgres:$(POSTGRES_VER)
+		-d postgres:$(POSTGRES_VER) \
+		-c log_statement=all
 	@sleep 1
 
 start-devdb: dev-db create-db dev-migrations
