@@ -1,0 +1,9 @@
+[general]
+WorkingDir = "/home/weezel/projects/programming/go/budget"
+
+[postgres]
+Username = "postgres"
+Password = "jakutzi"
+Hostname = "localhost"
+Port = "5432"
+Database = "budget_test"

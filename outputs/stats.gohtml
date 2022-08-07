@@ -1,37 +1,70 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-<meta charset="utf-8" />
-<title>Kuukausittainen datapläjäys</title>
+    <meta charset="utf-8" />
+    <title>Kulutus ja palkkatiedot</title>
 </head>
+
 <body>
-    <h1>Tietoja</h1>
-    <h3>Alkaen {{ .From.Format "02-01-2006" }} ja {{ .To.Format "02-01-2006" }} asti</h3>
+    <h3>Aggregoitu kulutus ja palkat ajalta {{ .From.Format "01-2006" }} - {{ .To.Format "01-2006" }}</h3>
     <table width=600px>
-    <col style="width:150px">
-    <col style="width:100px">
-    <col style="width:100px">
-    <col style="width:100px">
-    <thead>
-    <tr>
-        <th style="text-align:left">Käyttäjä</th>
-        <th style="text-align:center">Aika</th>
-        <th style="text-align:right">Kulut yhteensä</th>
-        <th style="text-align:right">Palkka</th>
-    </tr>
-    </thead>
+        <col style="width:150px">
+        <col style="width:100px">
+        <col style="width:100px">
+        <col style="width:100px">
+        <thead>
+            <tr>
+                <th style="text-align:left">Käyttäjä</th>
+                <th style="text-align:center">Aika</th>
+                <th style="text-align:right">Kulut yhteensä</th>
+                <th style="text-align:right">Palkka</th>
+            </tr>
+        </thead>
 
-    <tbody>
-    {{- range $s := .Spendings }}
-    <tr>
-        <td style="text-align:left">{{- .Username }}</td>
-        <td style="text-align:center">{{- .MonthYear.Format "02-01-2006" }}</td>
-        <td style="text-align:right">{{- .Expenses }}</td>
-        <td style="text-align:right">{{- .Salary }}</td>
-    </tr>
-    {{- end }}
-    </tbody>
+        <tbody>
+            {{- range $s := .Statistics }}
+            <tr>
+                <td style="text-align:left">{{- .Username }}</td>
+                <td style="text-align:center">{{- .EventDate.Format "01-2006" }}</td>
+                <td style="text-align:right">{{- printf "%.2f" .ExpensesSum }}</td>
+                <td style="text-align:right">{{- .Salary }}</td>
+            </tr>
+            {{- end }}
+        </tbody>
+    </table>
 
+    <br />
+
+    <h3>Kulutusten tarkempi erottelu ajalta {{ .From.Format "02-01-2006" }} - {{ .To.Format "02-01-2006" }}</h3>
+    <table width=650px>
+        <tbody>
+            <col style="width:30px">
+            <col style="width:120px">
+            <col style="width:120px">
+            <col style="width:60px">
+            <col style="width:150px">
+            <thead>
+                <tr>
+                    <th style="text-align:center">ID</th>
+                    <th style="text-align:center">Käyttäjä</th>
+                    <th style="text-align:center">Aika</th>
+                    <th style="text-align:left">Oston kuvaus</th>
+                    <th style="text-align:left">Hinta</th>
+                </tr>
+            </thead>
+
+            {{- range $expense := .Detailed }}
+            <tr>
+                <td style="text-align:center">{{- .ID }}</td>
+                <td style="text-align:center">{{- .Username }}</td>
+                <td style="text-align:center">{{- .ExpenseDate.Format "02-01-2006" }}</td>
+                <td style="text-align:left">{{- .ShopName }}</td>
+                <td style="text-align:left">{{- printf "%.2f" .Price }}</td>
+            </tr>
+            {{- end }}
+        </tbody>
     </table>
 </body>
+
 </html>

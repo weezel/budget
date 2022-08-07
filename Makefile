@@ -45,6 +45,10 @@ dev-migrations:
 create-db:
 	@$(PSQL_CLIENT) postgresql://$(DB_USERNAME):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/ \
 		-q -c "CREATE DATABASE $(DB_NAME) OWNER postgres ENCODING UTF8;"
+create-db-integrations:
+	@$(PSQL_CLIENT) postgresql://$(DB_USERNAME):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/ \
+		-q -c "CREATE DATABASE budget_test OWNER postgres ENCODING UTF8;"
+
 
 db-dump:
 	$(PG_DUMP) postgresql://$(DB_USERNAME):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME) \
@@ -82,6 +86,11 @@ coverage:
 
 test:
 	go test ./...
+
+# This runs all tests, including integration tests
+test-integration: dev-db create-db-integrations
+	go test -tags=integration ./...
+	@docker stop budgetdb_dev
 
 .PHONY: sqlc
 sqlc:
