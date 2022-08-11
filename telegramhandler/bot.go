@@ -9,11 +9,6 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-const (
-	failed         = "\u274C"
-	heavyCheckMark = "\u2714"
-)
-
 var splitPath = regexp.MustCompile(`\s+`)
 
 // SendTelegram returns true if message sending succeeds and false otherwise
