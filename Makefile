@@ -39,16 +39,15 @@ docker-build:
 docker-run:
 	docker run --rm -v $(shell pwd):/app/config budget-test &
 
-dev-migrations:
+migrations:
 	go run cmd/dbmigrate/main.go
 
 create-db:
-	@$(PSQL_CLIENT) postgresql://$(DB_USERNAME):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/ \
+	-@$(PSQL_CLIENT) postgresql://$(DB_USERNAME):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/ \
 		-q -c "CREATE DATABASE $(DB_NAME) OWNER postgres ENCODING UTF8;"
 create-db-integrations:
 	@$(PSQL_CLIENT) postgresql://$(DB_USERNAME):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/ \
 		-q -c "CREATE DATABASE budget_test OWNER postgres ENCODING UTF8;"
-
 
 db-dump:
 	$(PG_DUMP) postgresql://$(DB_USERNAME):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME) \
@@ -58,7 +57,7 @@ db-restore:
 	$(PSQL_CLIENT) postgresql://$(DB_USERNAME):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME) \
 		-q -f $(RESTORE_FILE)
 
-dev-db:
+postgresql:
 	@$(DOCKER) run \
 		--name budgetdb_dev \
 		--rm \
@@ -68,9 +67,9 @@ dev-db:
 		-c log_statement=all
 	@sleep 1
 
-start-devdb: dev-db create-db dev-migrations
+start-db: postgresql create-db migrations
 
-stop-devdb:
+stop-db:
 	@$(DOCKER) stop budgetdb_dev
 
 sqlite-psql-migrate:
@@ -88,7 +87,7 @@ test:
 	go test ./...
 
 # This runs all tests, including integration tests
-test-integration: dev-db create-db-integrations
+test-integration: db create-db-integrations
 	go test -tags=integration ./...
 	@docker stop budgetdb_dev
 
