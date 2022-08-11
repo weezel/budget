@@ -15,6 +15,7 @@ DB_PORT		?= $(shell awk -F '=' '/^DB_PORT/ { print $$NF }' .env)
 DB_NAME		?= $(shell awk -F '=' '/^DB_NAME/ { print $$NF }' .env)
 DB_USERNAME	?= $(shell awk -F '=' '/^DB_USERNAME/ { print $$NF }' .env)
 DB_PASSWORD	?= $(shell awk -F '=' '/^DB_PASSWORD/ { print $$NF }' .env)
+COMPOSE_FILE	?= docker-compose.yml
 
 
 .PHONY: all analysis obsd test
@@ -58,19 +59,13 @@ db-restore:
 		-q -f $(RESTORE_FILE)
 
 postgresql:
-	@$(DOCKER) run \
-		--name budgetdb_dev \
-		--rm \
-		-e POSTGRES_PASSWORD=$(DB_PASSWORD) \
-		-p $(DB_PORT):$(DB_PORT) \
-		-d postgres:$(POSTGRES_VER) \
-		-c log_statement=all
+	@$(DOCKER) compose -f $(COMPOSE_FILE) up -d
 	@sleep 1
 
 start-db: postgresql create-db migrations
 
 stop-db:
-	@$(DOCKER) stop budgetdb_dev
+	@$(DOCKER) compose down
 
 sqlite-psql-migrate:
 	@go run cmd/sqlite2postgres/main.go

@@ -1,0 +1,11 @@
+version: "3.8"
+
+services:
+  budget-db:
+    image: "postgres:14.4"
+    restart: on-failure:3
+    environment:
+      - "POSTGRES_PASSWORD=${DB_PASSWORD}"
+    ports:
+      - "127.0.0.1:${DB_PORT}:${DB_PORT}"
+    command: "-c log_statement=all"
