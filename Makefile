@@ -5,7 +5,7 @@ DOCKER		?= docker
 LDFLAGS		?= -asmflags -trimpath -ldflags "-s -w"
 GOARCH		?= amd64
 BINARY		?= budget
-CGO_ENABLED	?= 1
+CGO_ENABLED	?= 0
 
 PSQL_CLIENT	?= psql
 PG_DUMP		?= pg_dump
@@ -39,7 +39,7 @@ build-dbmigrate:
 		cmd/dbmigrate/main.go
 
 build-sqlite2postgres:
-	CGO_ENABLED=$(CGO_ENABLED) GOOS=linux GOARCH=$(GOARCH) \
+	CGO_ENABLED=1 GOOS=linux GOARCH=$(GOARCH) \
 		$(GO) build $(LDFLAGS) \
 		-o build/sqlite2postgres_linux_$(GOARCH) \
 		cmd/sqlite2postgres/main.go
