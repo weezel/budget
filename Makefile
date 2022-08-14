@@ -20,13 +20,33 @@ COMPOSE_FILE	?= docker-compose.yml
 
 .PHONY: all analysis obsd test
 
-build: test lint
+build: test lint build-dbmigrate build-bot
+
+build-bot:
+	-rm -rf cmd/telegrambot/schemas
+	cp -R sqlc/schemas/ cmd/telegrambot/
 	CGO_ENABLED=$(CGO_ENABLED) GOOS=linux GOARCH=$(GOARCH) \
-	     $(GO) build $(LDFLAGS) -o $(BINARY)_linux_$(GOARCH) \
-	     cmd/telegrambot/main.go
+		$(GO) build $(LDFLAGS) \
+		-o build/$(BINARY)_linux_$(GOARCH) \
+		cmd/telegrambot/main.go
+
+build-dbmigrate:
+	-rm -rf cmd/dbmigrate/schemas
+	cp -R sqlc/schemas/ cmd/dbmigrate/
+	CGO_ENABLED=$(CGO_ENABLED) GOOS=linux GOARCH=$(GOARCH) \
+		$(GO) build $(LDFLAGS) \
+		-o build/dbmigrate_linux_$(GOARCH) \
+		cmd/dbmigrate/main.go
+
+build-sqlite2postgres:
+	CGO_ENABLED=$(CGO_ENABLED) GOOS=linux GOARCH=$(GOARCH) \
+		$(GO) build $(LDFLAGS) \
+		-o build/sqlite2postgres_linux_$(GOARCH) \
+		cmd/sqlite2postgres/main.go
+
 
 clean:
-	rm -f budget budget_linux_amd64 budget_openbsd_amd64
+	rm -rf budget build
 
 lint:
 	golangci-lint run ./...
