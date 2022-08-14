@@ -1,6 +1,7 @@
 package main
 
 import (
+	"embed"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -11,7 +12,7 @@ import (
 	"weezel/budget/dbengine"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
-	"github.com/pressly/goose"
+	"github.com/pressly/goose/v3"
 )
 
 var (
@@ -20,6 +21,11 @@ var (
 	configFilePath string
 	wd             string
 )
+
+var schemasDir = "schemas"
+
+//go:embed schemas/*.sql
+var sqlMigrations embed.FS
 
 func init() {
 	log.SetFlags(0)
@@ -52,7 +58,7 @@ func main() {
 	}
 	defer dbConn.Close()
 
-	schemasDir := filepath.Join(wd, "sqlc/schemas")
+	goose.SetBaseFS(sqlMigrations)
 
 	if showStatus {
 		if err = goose.Status(dbConn, schemasDir); err != nil {

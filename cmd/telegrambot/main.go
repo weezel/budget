@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"embed"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -22,10 +23,15 @@ import (
 	"weezel/budget/web"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/pressly/goose"
+	"github.com/pressly/goose/v3"
 )
 
 var configFileName string
+
+//go:embed schemas/*.sql
+var sqlMigrations embed.FS
+
+var schemasDir = "schemas"
 
 // setWorkingDirectory changes working directory to same where
 // the executable is
@@ -51,7 +57,7 @@ func dbMigrations(conf confighandler.TomlConfig) error {
 	}
 	defer dbConn.Close()
 
-	schemasDir := filepath.Join(conf.General.WorkingDir, "sqlc/schemas")
+	goose.SetBaseFS(sqlMigrations)
 
 	// Do the DB Migrations
 	// goose.SetLogger(&logrus.Logger{}) // FIXME

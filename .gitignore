@@ -4,5 +4,7 @@ budget
 budget.toml
 budget_linux_amd64
 budget_openbsd_amd64
+cmd/dbmigrate/schemas/
+cmd/telegrambot/schemas/
 coverage.*
 postgres-data/

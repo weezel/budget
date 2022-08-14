@@ -12,13 +12,12 @@ require (
 	github.com/pelletier/go-toml v1.9.4
 	github.com/prprprus/scheduler v0.5.0
 	github.com/sirupsen/logrus v1.8.1
-	golang.org/x/sys v0.0.0-20220224120231-95c6836cb0e7
+	golang.org/x/sys v0.0.0-20220429233432-b5fbb4746d32
 )
 
 require (
 	github.com/jackc/pgtype v1.11.0 // indirect
 	github.com/jackc/puddle v1.2.1 // indirect
-	github.com/pkg/errors v0.8.1 // indirect
 )
 
 require (
@@ -27,8 +26,7 @@ require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgproto3/v2 v2.3.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
-	github.com/lib/pq v1.10.6 // indirect
-	github.com/pressly/goose v2.7.0+incompatible
+	github.com/pressly/goose/v3 v3.6.1
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97 // indirect
 	golang.org/x/text v0.3.7 // indirect
 )
