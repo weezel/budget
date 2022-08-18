@@ -27,8 +27,6 @@ func SendTelegram(
 }
 
 func ConnectionHandler(bot *tgbotapi.BotAPI, channelID int64, hostname string) {
-	var command string
-	var lastElem string
 	var err error
 
 	u := tgbotapi.NewUpdate(0)
@@ -44,9 +42,9 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelID int64, hostname string) {
 		username := update.Message.From.String()
 		msg := update.Message.Text
 		tokenized := splitPath.Split(msg, -1)
-		lastElem = strings.ReplaceAll(tokenized[len(tokenized)-1], ",", ".")
+		lastElem := strings.ReplaceAll(tokenized[len(tokenized)-1], ",", ".")
 		logger.Infof("Tokenized: %v", tokenized)
-		command = strings.ToLower(tokenized[0])
+		command := strings.ToLower(tokenized[0])
 
 		switch command {
 		case "osto":
