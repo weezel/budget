@@ -103,17 +103,6 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelID int64, hostname string) {
 			if err = SendTelegram(bot, outMsg, false); err != nil {
 				logger.Error(err)
 			}
-		case "velat", "velkaa":
-			if len(tokenized) < 2 {
-				displayHelp(username, channelID, bot)
-				continue
-			}
-
-			msg := handleDebts(ctx, tokenized)
-			outMsg := tgbotapi.NewMessage(channelID, msg)
-			if err = SendTelegram(bot, outMsg, false); err != nil {
-				logger.Error(err)
-			}
 		case "help", "apua":
 			displayHelp(username, channelID, bot)
 			continue

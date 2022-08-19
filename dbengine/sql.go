@@ -1,6 +1,8 @@
 package dbengine
 
-/* Yes I know, it's a lousy DB design.
+/*
+	Yes I know, it's a lousy DB design.
+
 Nevertheless, should handle million
 rows just fine so we're good.
 

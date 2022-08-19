@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -29,33 +30,36 @@ var (
 
 func init() {
 	wd, _ = os.Getwd()
+	ctx := context.Background()
 
-	err := os.Setenv("CONFIG_FILE", "../../integrations.toml")
-	if err != nil {
-		panic(err)
-	}
-	configFileName, ok := os.LookupEnv("CONFIG_FILE")
-	if !ok {
-		panic("CONFIG_FILE env var not set")
-	}
+	configFileName := "../../integrations.toml"
 	configFile, err := ioutil.ReadFile(filepath.Join(wd, configFileName))
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf(">1> %s", err))
 	}
 	conf, err := confighandler.LoadConfig(configFile)
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf(">2> %s", err))
 	}
 
 	// Perform database migrations
 	err = dbMigrations(conf)
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf(">3> %s", err))
 	}
 
 	conn, err = dbengine.New(context.Background(), conf.Postgres)
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf(">4> %s", err))
+	}
+
+	_, err = conn.Exec(ctx, "DELETE FROM budget_schema.expense;")
+	if err != nil {
+		panic(fmt.Errorf(">5> %s", err))
+	}
+	_, err = conn.Exec(ctx, "DELETE FROM budget_schema.salary;")
+	if err != nil {
+		panic(fmt.Errorf(">6> %s", err))
 	}
 
 	addContent()
@@ -104,6 +108,7 @@ func generateStatsHTMLPage(
 
 func addContent() {
 	bdb := db.New(conn)
+
 	for i := 1; i < 11; i++ {
 		// Expense
 		_, err := bdb.AddExpense(context.Background(), db.AddExpenseParams{
@@ -119,7 +124,7 @@ func addContent() {
 		_, err = bdb.AddExpense(context.Background(), db.AddExpenseParams{
 			Username:    "Jorma",
 			ShopName:    "Beer",
-			Category:    "",
+			Category:    "Leisure",
 			Price:       float64(i) * 2,
 			ExpenseDate: time.Date(2020, 8, i, 1, 0, 0, 0, time.UTC),
 		})
@@ -183,6 +188,7 @@ func TestIntegration_main(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+	// os.WriteFile("stats-out.html", statsPage, 0o600) // For observation
 	expectedPage, err := os.ReadFile("./stats-test_expected.html")
 	if err != nil {
 		panic(err)
@@ -191,14 +197,5 @@ func TestIntegration_main(t *testing.T) {
 	if diff := cmp.Diff(expectedPage, statsPage); diff != "" {
 		t.Fatalf("%s: Stats HTML page differs from the expected one:\n%s",
 			t.Name(), diff)
-	}
-
-	_, err = conn.Exec(ctx, "DELETE FROM budget_schema.expense;")
-	if err != nil {
-		t.Error(err)
-	}
-	_, err = conn.Exec(ctx, "DELETE FROM budget_schema.salary;")
-	if err != nil {
-		t.Error(err)
 	}
 }

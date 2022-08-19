@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"strings"
 	"time"
 	"weezel/budget/dbengine"
 	"weezel/budget/logger"
@@ -213,30 +212,4 @@ func handleSalaryInsert(ctx context.Context, username string, lastElem string, t
 		salaryDate.Format("01-2006"),
 		pid)
 	return fmt.Sprintf("Palkka kirjattu, %s. Kiitos!", username)
-}
-
-func handleDebts(ctx context.Context, tokenized []string) string {
-	month := utils.GetDate(tokenized, "01-2006")
-	if month.IsZero() {
-		logger.Errorf("couldn't parse date for debts")
-		return "Virhe päivämäärän parsinnassa. Oltava muotoa kk-vvvv"
-	}
-
-	debts, err := dbengine.GetSalaryCompensatedDebts(ctx, month, month)
-	if err != nil {
-		logger.Error(err)
-		return fmt.Sprintf("Bzzzt, ei saatu velkatietoja")
-	}
-
-	var s strings.Builder
-	for _, user := range debts {
-		msg := fmt.Sprintf("%s: %s on velkaa %.2f\n",
-			month.Format("01-2006"),
-			user.Username,
-			user.Owes,
-		)
-		s.WriteString(msg)
-	}
-
-	return s.String()
 }

@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"sort"
 	"sync"
 	"time"
 	"weezel/budget/confighandler"
 	"weezel/budget/db"
+	"weezel/budget/debtcontrol"
 	"weezel/budget/logger"
 
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -146,19 +146,7 @@ func StatisticsByTimespan(
 	endTime time.Time,
 ) ([]*db.StatisticsAggrByTimespanRow, error) {
 	bdb := db.New(dbPool)
-	return bdb.StatisticsAggrByTimespan(ctx, db.StatisticsAggrByTimespanParams{
-		StartTime: startTime,
-		EndTime:   endTime,
-	})
-}
-
-func GetSalaryCompensatedDebts(
-	ctx context.Context,
-	startTime time.Time,
-	endTime time.Time,
-) ([]*db.StatisticsAggrByTimespanRow, error) {
-	bdb := db.New(dbPool)
-	debts, err := bdb.StatisticsAggrByTimespan(ctx, db.StatisticsAggrByTimespanParams{
+	stats, err := bdb.StatisticsAggrByTimespan(ctx, db.StatisticsAggrByTimespanParams{
 		StartTime: startTime,
 		EndTime:   endTime,
 	})
@@ -166,47 +154,20 @@ func GetSalaryCompensatedDebts(
 		return nil, err
 	}
 
-	if len(debts) != 2 {
-		return nil, fmt.Errorf("Not enough, or too much users to calculate debts (was %d)",
-			len(debts))
+	monthData := []*db.StatisticsAggrByTimespanRow{}
+	for i := range stats {
+		if i > 0 && i%2 != 0 {
+			monthData = append(monthData, stats[i])
+			err := debtcontrol.GetSalaryCompensatedDebts(ctx, monthData[0], monthData[1])
+			if err != nil {
+				logger.Error(err)
+				break
+			}
+			monthData = []*db.StatisticsAggrByTimespanRow{}
+		} else {
+			monthData = append(monthData, stats[i])
+		}
 	}
 
-	// Descending order regarding to salary
-	sort.Slice(debts, func(i, j int) bool {
-		return debts[i].Salary < debts[j].Salary
-	})
-
-	sumSalaries := float64(debts[1].Salary + debts[0].Salary)
-	lowerIncomeRatio := debts[0].Salary / sumSalaries
-	greaterIncomeRatio := debts[1].Salary / sumSalaries
-
-	lowerIncomeOwes := debts[1].ExpensesSum * lowerIncomeRatio
-	greaterIncomeOwes := debts[0].ExpensesSum * greaterIncomeRatio
-
-	totalExpenses := float64(debts[0].ExpensesSum + debts[1].ExpensesSum)
-	expRatioByLowerInc := debts[0].ExpensesSum / totalExpenses
-	expRatioByGreaterInc := debts[1].ExpensesSum / totalExpenses
-
-	debt := math.Abs(greaterIncomeOwes - lowerIncomeOwes)
-
-	logger.Debugf("Sum of salaries: %.2f", sumSalaries)
-	logger.Debugf("Lower income ration: %.2f", lowerIncomeRatio)
-	logger.Debugf("Lower income owes: %.2f", lowerIncomeOwes)
-	logger.Debugf("Greater income ration: %.2f", greaterIncomeRatio)
-	logger.Debugf("Greater income owes: %.2f", greaterIncomeOwes)
-	logger.Debugf("Expenses ratio by lower income: %.2f", expRatioByLowerInc)
-	logger.Debugf("Expenses ratio by greater income: %.2f", expRatioByGreaterInc)
-	logger.Debugf("Total expenses: %.2f", totalExpenses)
-	logger.Debugf("Debt in the end: %.2f", debt)
-
-	if expRatioByLowerInc < expRatioByGreaterInc {
-		debts[0].Owes = debt
-		debts[1].Owes = 0.0
-	} else {
-		debts[0].Owes = 0.0
-		debts[1].Owes = debt
-	}
-	logger.Debugf("Debts fetched: %#v", debts)
-
-	return debts, nil
+	return stats, nil
 }

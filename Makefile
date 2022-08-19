@@ -44,7 +44,6 @@ build-sqlite2postgres:
 		-o build/sqlite2postgres_linux_$(GOARCH) \
 		cmd/sqlite2postgres/main.go
 
-
 clean:
 	rm -rf budget build
 
@@ -67,7 +66,7 @@ create-db:
 	-@$(PSQL_CLIENT) postgresql://$(DB_USERNAME):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/ \
 		-q -c "CREATE DATABASE $(DB_NAME) OWNER postgres ENCODING UTF8;"
 create-db-integrations:
-	@$(PSQL_CLIENT) postgresql://$(DB_USERNAME):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/ \
+	-@$(PSQL_CLIENT) postgresql://$(DB_USERNAME):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/ \
 		-q -c "CREATE DATABASE budget_test OWNER postgres ENCODING UTF8;"
 
 db-dump:
@@ -101,10 +100,14 @@ coverage:
 test:
 	go test ./...
 
+dev-db:
+	@docker compose -f docker-compose-dev.yml up -d
+	@sleep 1
+
 # This runs all tests, including integration tests
-test-integration: db create-db-integrations
-	go test -tags=integration ./...
-	@docker stop budgetdb_dev
+test-integration: dev-db create-db-integrations
+	-@go test -tags=integration ./...
+	@docker compose down
 
 .PHONY: sqlc
 sqlc:

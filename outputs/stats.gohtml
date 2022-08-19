@@ -19,6 +19,7 @@
                 <th style="text-align:center">Aika</th>
                 <th style="text-align:right">Kulut yhteensä</th>
                 <th style="text-align:right">Palkka</th>
+                <th style="text-align:right">Velkaa</th>
             </tr>
         </thead>
 
@@ -29,6 +30,7 @@
                 <td style="text-align:center">{{- .EventDate.Format "01-2006" }}</td>
                 <td style="text-align:right">{{- printf "%.2f" .ExpensesSum }}</td>
                 <td style="text-align:right">{{- .Salary }}</td>
+                <td style="text-align:right">{{- printf "%.2f" .Owes }}</td>
             </tr>
             {{- end }}
         </tbody>
