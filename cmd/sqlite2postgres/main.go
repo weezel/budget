@@ -168,5 +168,5 @@ func main() {
 		}
 	}
 
-	log.Println("Migration completed")
+	log.Println("SQLite to PostgreSQL migration completed")
 }
