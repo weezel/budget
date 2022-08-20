@@ -26,7 +26,6 @@ deleting one file will be enough. Bear with me.
 import (
 	"context"
 	"flag"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -108,7 +107,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	configFile, err := ioutil.ReadFile(filepath.Join(wd, configFilePath))
+	configFile, err := os.ReadFile(filepath.Join(wd, configFilePath))
 	if err != nil {
 		panic(err)
 	}

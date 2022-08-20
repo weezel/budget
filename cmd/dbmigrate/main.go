@@ -4,7 +4,6 @@ import (
 	"embed"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -43,7 +42,7 @@ func main() {
 	flag.StringVar(&configFilePath, "f", "budget.toml", "Configuration file")
 	flag.Parse()
 
-	configFile, err := ioutil.ReadFile(filepath.Join(wd, configFilePath))
+	configFile, err := os.ReadFile(filepath.Join(wd, configFilePath))
 	if err != nil {
 		panic(err)
 	}

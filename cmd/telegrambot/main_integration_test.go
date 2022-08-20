@@ -6,7 +6,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -33,7 +32,7 @@ func init() {
 	ctx := context.Background()
 
 	configFileName := "../../integrations.toml"
-	configFile, err := ioutil.ReadFile(filepath.Join(wd, configFileName))
+	configFile, err := os.ReadFile(filepath.Join(wd, configFileName))
 	if err != nil {
 		panic(fmt.Errorf(">1> %s", err))
 	}

@@ -5,7 +5,6 @@ import (
 	"embed"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -84,7 +83,7 @@ func main() {
 
 	wd, _ := os.Getwd()
 
-	configFile, err := ioutil.ReadFile(filepath.Join(wd, configFileName))
+	configFile, err := os.ReadFile(filepath.Join(wd, configFileName))
 	if err != nil {
 		log.Panic(err)
 	}
