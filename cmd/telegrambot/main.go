@@ -131,8 +131,9 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", web.APIHandler)
 	httpServ := &http.Server{
-		Addr:    conf.Webserver.HTTPPort,
-		Handler: mux,
+		Handler:           mux,
+		Addr:              conf.Webserver.HTTPPort,
+		ReadHeaderTimeout: 3 * time.Second,
 	}
 
 	go func() {
