@@ -195,7 +195,7 @@ func TestIntegration_main(t *testing.T) {
 	}
 
 	if diff := cmp.Diff(expectedPage, statsPage); diff != "" {
-		t.Fatalf("%s: Stats HTML page differs from the expected one:\n%s",
+		t.Errorf("%s: Stats HTML page differs from the expected one:\n%s",
 			t.Name(), diff)
 	}
 }
