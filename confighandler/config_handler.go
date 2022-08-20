@@ -1,31 +1,42 @@
 package confighandler
 
 import (
-	"weezel/budget/logger"
-
 	toml "github.com/pelletier/go-toml"
 )
 
-type TeleConfig struct {
-	APIKey     string
+type General struct {
 	WorkingDir string
-	ChannelID  int64
 }
 
-type WebserverConfig struct {
+type Telegram struct {
+	APIKey    string
+	ChannelID int64
+}
+
+type Webserver struct {
 	HTTPPort string
 	Hostname string
 }
 
-type TomlConfig struct {
-	WebserverConfig WebserverConfig
-	TeleConfig      TeleConfig
+type Postgres struct {
+	Hostname string
+	Port     string
+	Database string
+	Username string
+	Password string
 }
 
-func LoadConfig(filedata []byte) TomlConfig {
+type TomlConfig struct {
+	General   General
+	Telegram  Telegram
+	Webserver Webserver
+	Postgres  Postgres
+}
+
+func LoadConfig(filedata []byte) (TomlConfig, error) {
 	config := TomlConfig{}
 	if err := toml.Unmarshal(filedata, &config); err != nil {
-		logger.Panicf("Error parsing config: %s", err)
+		return TomlConfig{}, err
 	}
-	return config
+	return config, nil
 }

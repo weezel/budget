@@ -54,6 +54,7 @@ func InitScheduler() {
 	cleanerSchedule.Every().Second(0).Do(cleaner)
 }
 
+// Get returns ShortLivedPage regarding the given pageHash.
 func Get(pageHash string) ShortLivedPage {
 	lock.RLock()
 	defer lock.RUnlock()
@@ -65,6 +66,7 @@ func Get(pageHash string) ShortLivedPage {
 	return ShortLivedPage{}
 }
 
+// Add returns false if the key was already in the map and true otherwise.
 func Add(pageHash string, page ShortLivedPage) bool {
 	lock.Lock()
 	defer lock.Unlock()
@@ -76,13 +78,16 @@ func Add(pageHash string, page ShortLivedPage) bool {
 	return false
 }
 
-func Remove(pageHash string) bool {
+// Remove deletes the key from the map and returns removed ShortLivedPage, nil if
+// nothing is found.
+func Remove(pageHash string) *ShortLivedPage {
 	lock.Lock()
 	defer lock.Unlock()
 
 	if _, ok := shortLivedPages[pageHash]; ok {
+		deletable := shortLivedPages[pageHash]
 		delete(shortLivedPages, pageHash)
-		return true
+		return &deletable
 	}
-	return false
+	return nil
 }

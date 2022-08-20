@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  budget-db:
+    image: "postgres:14.4"
+    restart: on-failure:5
+    environment:
+      - "POSTGRES_PASSWORD=${DB_PASSWORD}"
+    ports:
+      - "127.0.0.1:${DB_PORT}:${DB_PORT}"
+    volumes:
+      - "$PWD/postgres-data:/var/lib/postgresql/data:rw"
+#     - "$PWD/postgres.socket:/var/run/postgresql/.s.PGSQL.5432:rw"

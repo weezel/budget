@@ -2,44 +2,43 @@ package outputs
 
 import (
 	"bytes"
+	"database/sql"
 	"embed"
 	"html/template"
-	"weezel/budget/dbengine"
+	"time"
+	"weezel/budget/db"
 )
 
-type TemplateType int
-
-const (
-	MontlySpendingsTemplate TemplateType = iota
-	MonthlyDataTemplate     TemplateType = iota
-)
-
-//go:embed monthlydata.gohtml
+//go:embed stats.gohtml
 var dataTemplateFS embed.FS
 
-//go:embed monthlyspendings.gohtml
-var spendingsTemplateFS embed.FS
+type StatisticsVars struct {
+	From       time.Time
+	To         time.Time
+	Statistics []*db.StatisticsAggrByTimespanRow
+	Detailed   []*db.GetExpensesByTimespanRow
+}
 
-func HTML(spending dbengine.SpendingHTMLOutput, templateType TemplateType) ([]byte, error) {
-	var tpl *template.Template
-	var err error
-	var filename string
-	buf := bytes.Buffer{}
-
-	switch templateType {
-	case MonthlyDataTemplate:
-		filename = "monthlydata.gohtml"
-		tpl, err = template.ParseFS(dataTemplateFS, filename)
-	case MontlySpendingsTemplate:
-		filename = "monthlyspendings.gohtml"
-		tpl, err = template.ParseFS(spendingsTemplateFS, filename)
+func FormatNullFloat(f sql.NullFloat64) float64 {
+	if f.Valid {
+		return f.Float64
 	}
+	return 0.0
+}
+
+func RenderStatsHTML(templateVars StatisticsVars) ([]byte, error) {
+	filename := "stats.gohtml"
+
+	tpl, err := template.New(filename).Funcs(template.FuncMap{
+		"FormatNullFloat": FormatNullFloat,
+	}).ParseFS(dataTemplateFS, filename)
 	if err != nil {
-		return []byte{}, err
+		return nil, err
 	}
 
-	if err = tpl.ExecuteTemplate(&buf, filename, spending); err != nil {
-		return []byte{}, err
+	buf := bytes.Buffer{}
+	if err = tpl.ExecuteTemplate(&buf, filename, templateVars); err != nil {
+		return nil, err
 	}
 
 	return buf.Bytes(), nil
