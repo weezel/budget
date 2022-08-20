@@ -117,21 +117,27 @@ func getStatsTimeSpan(ctx context.Context, hostname string, tokenized []string) 
 		return "Virhe päivämäärän parsinnassa. Oltava muotoa kk-vvvv"
 	}
 
-	monthlyStats, err := dbengine.StatisticsByTimespan(ctx, startMonth, endMonth)
+	stats, err := dbengine.StatisticsByTimespan(ctx, startMonth, endMonth)
 	if err != nil {
 		logger.Error(err)
-		return "Tilastojen hakemisessa ongelmaa"
+		return "virhe, ei saatu tilastoja"
 	}
 
-	statsVars := outputs.StatisticsVars{
+	detailedExpenses, err := dbengine.GetExpensesByTimespan(ctx, startMonth, endMonth)
+	if err != nil {
+		logger.Error(err)
+		return "virhe, ei saatu kulutustietoja"
+	}
+
+	htmlPage, err := outputs.RenderStatsHTML(outputs.StatisticsVars{
 		From:       startMonth,
 		To:         endMonth,
-		Statistics: monthlyStats,
-	}
-	htmlPage, err := outputs.RenderStatsHTML(statsVars)
+		Statistics: stats,
+		Detailed:   detailedExpenses,
+	})
 	if err != nil {
-		logger.Infof("Couldn't generate HTML results for statistics: %s", err)
-		return "Sivun näyttämisessä ongelmaa"
+		logger.Error(err)
+		return "virhe, HTML sivun muodostus epäonnistui"
 	}
 
 	htmlPageHash := utils.CalcSha256Sum(htmlPage)
@@ -140,8 +146,7 @@ func getStatsTimeSpan(ctx context.Context, hostname string, tokenized []string) 
 		StartTime:  time.Now(),
 		HTMLPage:   &htmlPage,
 	}
-	addOk := shortlivedpage.Add(htmlPageHash, shortlivedPage)
-	if addOk {
+	if ok := shortlivedpage.Add(htmlPageHash, shortlivedPage); ok {
 		endTime := shortlivedPage.StartTime.Add(
 			time.Duration(shortlivedPage.TTLSeconds))
 		logger.Infof("Added shortlived data page %s with end time %s",
