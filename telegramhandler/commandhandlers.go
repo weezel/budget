@@ -27,42 +27,6 @@ func displayHelp(username string, channelID int64, bot *tgbotapi.BotAPI) {
 	}
 }
 
-func handlePurchase(
-	ctx context.Context,
-	shopName string,
-	rawPrice string,
-	username string,
-	tokenized []string,
-) string {
-	category := utils.GetCategory(tokenized)
-	purchaseDate := utils.GetDate(tokenized, "01-2006")
-	if purchaseDate.IsZero() {
-		logger.Info("No time given, using current time")
-		purchaseDate = time.Now()
-	}
-	price, err := strconv.ParseFloat(rawPrice, 64)
-	if err != nil {
-		logger.Error(err)
-		return "Virhe, hinta täytyy olla komennon viimeinen elementti ja muodossa x,xx tai x.xx"
-	}
-
-	pid, err := dbengine.AddExpense(ctx, username, shopName, category, purchaseDate, price)
-	if err != nil {
-		logger.Error(err)
-		return "Ostotapahtuman kirjaus epäonnistui"
-	}
-
-	logger.Infof("Purchased from %s [%s] with price %.2f by %s on %s, ID=%d",
-		shopName,
-		category,
-		price,
-		username,
-		purchaseDate.Format("01-2006"),
-		pid)
-
-	return fmt.Sprintf("Ostosi on kirjattu, %s. Kiitos!", username)
-}
-
 func getStatsTimeSpan(ctx context.Context, hostname string, tokenized []string) string {
 	startMonth := utils.GetDate(tokenized[1:], "01-2006")
 	endMonth := utils.GetDate(tokenized[2:], "01-2006")
@@ -151,6 +115,42 @@ func handleRemovePurchase(ctx context.Context, username string, tokenized []stri
 	}
 
 	return "Vain 'osto' tai 'palkka' kelepaa"
+}
+
+func handlePurchase(
+	ctx context.Context,
+	shopName string,
+	rawPrice string,
+	username string,
+	tokenized []string,
+) string {
+	category := utils.GetCategory(tokenized)
+	purchaseDate := utils.GetDate(tokenized, "01-2006")
+	if purchaseDate.IsZero() {
+		logger.Info("No time given, using current time")
+		purchaseDate = time.Now()
+	}
+	price, err := strconv.ParseFloat(rawPrice, 64)
+	if err != nil {
+		logger.Error(err)
+		return "Virhe, hinta täytyy olla komennon viimeinen elementti ja muodossa x,xx tai x.xx"
+	}
+
+	pid, err := dbengine.AddExpense(ctx, username, shopName, category, purchaseDate, price)
+	if err != nil {
+		logger.Error(err)
+		return "Ostotapahtuman kirjaus epäonnistui"
+	}
+
+	logger.Infof("Purchased from %s [%s] with price %.2f by %s on %s, ID=%d",
+		shopName,
+		category,
+		price,
+		username,
+		purchaseDate.Format("01-2006"),
+		pid)
+
+	return fmt.Sprintf("Ostosi on kirjattu, %s. Kiitos!", username)
 }
 
 func handleSalaryInsert(ctx context.Context, username string, lastElem string, tokenized []string) string {
