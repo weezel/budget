@@ -21,7 +21,6 @@ func displayHelp(username string, channelID int64, bot *tgbotapi.BotAPI) {
 	helpMsg += "**palkka** kk-vvvv xxxx.xx (nettona)\r\n"
 	helpMsg += "**poista** [osto TAI palkka] ID\r\n"
 	helpMsg += "**tilastot** kk-vvvv kk-vvvv\r\n"
-	helpMsg += "**velat** tai **velkaa** kk-vvvv\n\n"
 	outMsg := tgbotapi.NewMessage(channelID, helpMsg)
 	if _, err := bot.Send(outMsg); err != nil {
 		logger.Errorf("sending to channel failed: %s", err)
@@ -58,53 +57,6 @@ func handlePurchase(
 		pid)
 
 	return fmt.Sprintf("Ostosi on kirjattu, %s. Kiitos!", username)
-}
-
-func getStatsByTimeSpan(ctx context.Context, username string, hostname string, tokenized []string) string {
-	startMonth := utils.GetDate(tokenized[1:], "01-2006")
-	endMonth := utils.GetDate(tokenized[2:], "01-2006")
-
-	stats, err := dbengine.StatisticsByTimespan(ctx, startMonth, endMonth)
-	if err != nil {
-		logger.Error(err)
-		return "Tilastojen hakemisessa ongelmaa"
-	}
-
-	detailedExpenses, err := dbengine.GetExpensesByTimespan(ctx, startMonth, endMonth)
-	if err != nil {
-		logger.Error(err)
-		return "Kulutuksen hakemisessa ongelmaa"
-	}
-
-	statsHTMLVars := outputs.StatisticsVars{
-		From:       startMonth,
-		To:         endMonth,
-		Statistics: stats,
-		Detailed:   detailedExpenses,
-	}
-	htmlPage, err := outputs.RenderStatsHTML(statsHTMLVars)
-	if err != nil {
-		logger.Errorf("Couldn't generate HTML results for spendings: %s", err)
-		return "Kulutuksen näyttämisessä ongelmaa"
-	}
-
-	htmlPageHash := utils.CalcSha256Sum(htmlPage)
-	shortlivedPage := shortlivedpage.ShortLivedPage{
-		TTLSeconds: 600,
-		StartTime:  time.Now(),
-		HTMLPage:   &htmlPage,
-	}
-	addOk := shortlivedpage.Add(htmlPageHash, shortlivedPage)
-	if addOk {
-		endTime := shortlivedPage.StartTime.Add(
-			time.Duration(shortlivedPage.TTLSeconds))
-		logger.Infof("Added shortlived spendings page %s with end time %s",
-			htmlPageHash, endTime)
-	}
-
-	return fmt.Sprintf("Kulutustiedot saatavilla 10min ajan täällä: https://%s/spendings?page_hash=%s",
-		hostname,
-		htmlPageHash)
 }
 
 func getStatsTimeSpan(ctx context.Context, hostname string, tokenized []string) string {

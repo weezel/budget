@@ -59,17 +59,6 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelID int64, hostname string) {
 			if err = SendTelegram(bot, outMsg, false); err != nil {
 				logger.Error(err)
 			}
-		case "ostot":
-			if len(tokenized) < 3 {
-				displayHelp(username, channelID, bot)
-				continue
-			}
-
-			msg = getStatsByTimeSpan(ctx, username, hostname, tokenized)
-			outMsg := tgbotapi.NewMessage(channelID, msg)
-			if err = SendTelegram(bot, outMsg, false); err != nil {
-				logger.Error(err)
-			}
 		case "tilastot":
 			if len(tokenized) < 3 {
 				displayHelp(username, channelID, bot)
