@@ -36,6 +36,10 @@ func handlePurchase(
 ) string {
 	category := utils.GetCategory(tokenized)
 	purchaseDate := utils.GetDate(tokenized, "01-2006")
+	if purchaseDate.IsZero() {
+		logger.Info("No time given, using current time")
+		purchaseDate = time.Now()
+	}
 	price, err := strconv.ParseFloat(rawPrice, 64)
 	if err != nil {
 		logger.Error(err)
@@ -151,6 +155,10 @@ func handleRemovePurchase(ctx context.Context, username string, tokenized []stri
 
 func handleSalaryInsert(ctx context.Context, username string, lastElem string, tokenized []string) string {
 	salaryDate := utils.GetDate(tokenized, "01-2006")
+	if salaryDate.IsZero() {
+		logger.Info("No time given, using current time")
+		salaryDate = time.Now()
+	}
 	salary, err := strconv.ParseFloat(lastElem, 64)
 	if err != nil {
 		logger.Errorf("couldn't parse salary: %v", err)
