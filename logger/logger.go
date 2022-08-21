@@ -52,13 +52,12 @@ func funcCallTracer() *logrus.Entry {
 	})
 }
 
-func SetLoggingToFile(logFilePath string) error {
-	cleanedPath, err := filepath.Abs(logFilePath)
+func SetLoggingToFile(logFilePath, logFile string) error {
+	loggingAbsPath, err := filepath.Abs(logFilePath)
 	if err != nil {
 		return err
 	}
-	loggingFileAbsPath := filepath.Clean(cleanedPath)
-	log.Infof("Logging to file %s", loggingFileAbsPath)
+	loggingFileAbsPath := filepath.Join(loggingAbsPath, logFile)
 	logFileHandle, err = os.OpenFile(
 		loggingFileAbsPath,
 		os.O_APPEND|os.O_CREATE|os.O_RDWR,

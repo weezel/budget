@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -39,14 +38,12 @@ func setWorkingDirectory(workdirPath string) string {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	cdwPath := path.Dir(absPath)
-	if err := os.Chdir(cdwPath); err != nil {
+	if err := os.Chdir(absPath); err != nil {
 		logger.Fatal(err)
 	}
-	log.Printf("Working directory set to %s\n", cdwPath)
 
-	trimmed := strings.TrimRight(cdwPath, "/")
-	return trimmed + "/"
+	trimmed := strings.TrimRight(absPath, "/") + "/"
+	return trimmed
 }
 
 func dbMigrations(conf confighandler.TomlConfig) error {
@@ -93,8 +90,9 @@ func main() {
 	}
 
 	cwd := setWorkingDirectory(conf.General.WorkingDir)
+	logger.Infof("Working directory set to %s", cwd)
 
-	err = logger.SetLoggingToFile(filepath.Join(cwd, "budget.log"))
+	err = logger.SetLoggingToFile(cwd, "budget.log")
 	if err != nil {
 		logger.Fatal(err)
 	}
