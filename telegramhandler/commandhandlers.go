@@ -21,7 +21,7 @@ func displayHelp(username string, channelID int64, bot *tgbotapi.BotAPI) {
 	helpMsg += "**palkka** kk-vvvv xxxx.xx (nettona)\r\n"
 	helpMsg += "**poista** [osto TAI palkka] ID\r\n"
 	helpMsg += "**tilastot** kk-vvvv kk-vvvv\r\n"
-	outMsg := tgbotapi.NewMessage(channelID, helpMsg)
+	outMsg := tgbotapi.NewMessage(channelID, tgbotapi.EscapeText(tgbotapi.ModeMarkdown, helpMsg))
 	if _, err := bot.Send(outMsg); err != nil {
 		logger.Errorf("sending to channel failed: %s", err)
 	}
