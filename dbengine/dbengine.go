@@ -8,7 +8,6 @@ import (
 	"time"
 	"weezel/budget/confighandler"
 	"weezel/budget/db"
-	"weezel/budget/debtcontrol"
 	"weezel/budget/logger"
 
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -152,21 +151,6 @@ func StatisticsByTimespan(
 	})
 	if err != nil {
 		return nil, err
-	}
-
-	monthData := []*db.StatisticsAggrByTimespanRow{}
-	for i := range stats {
-		if i > 0 && i%2 != 0 {
-			monthData = append(monthData, stats[i])
-			err := debtcontrol.GetSalaryCompensatedDebts(ctx, monthData[0], monthData[1])
-			if err != nil {
-				logger.Error(err)
-				break
-			}
-			monthData = []*db.StatisticsAggrByTimespanRow{}
-		} else {
-			monthData = append(monthData, stats[i])
-		}
 	}
 
 	return stats, nil

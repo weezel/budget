@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 	"weezel/budget/dbengine"
+	"weezel/budget/debtcontrol"
 	"weezel/budget/logger"
 	"weezel/budget/outputs"
 	"weezel/budget/shortlivedpage"
@@ -42,6 +43,7 @@ func getStatsTimeSpan(ctx context.Context, hostname string, tokenized []string) 
 		logger.Error(err)
 		return "virhe, ei saatu tilastoja"
 	}
+	debtcontrol.FillDebts(ctx, stats)
 
 	detailedExpenses, err := dbengine.GetExpensesByTimespan(ctx, startMonth, endMonth)
 	if err != nil {

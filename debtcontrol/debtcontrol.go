@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"time"
 	"weezel/budget/db"
 	"weezel/budget/logger"
 )
 
-func GetSalaryCompensatedDebts(
+func CalculateCompensatedDebts(
 	ctx context.Context,
 	user1 *db.StatisticsAggrByTimespanRow,
 	user2 *db.StatisticsAggrByTimespanRow,
@@ -55,4 +56,24 @@ func GetSalaryCompensatedDebts(
 	}
 
 	return nil
+}
+
+// FillDebts fills debt related data to stats parameter. Map is being used to combine different user's data together
+// and calculating compensated debts.
+func FillDebts(ctx context.Context, stats []*db.StatisticsAggrByTimespanRow) {
+	byMonth := map[time.Time][]*db.StatisticsAggrByTimespanRow{}
+	for i := range stats {
+		if _, ok := byMonth[stats[i].EventDate]; !ok {
+			byMonth[stats[i].EventDate] = []*db.StatisticsAggrByTimespanRow{}
+		}
+		byMonth[stats[i].EventDate] = append(byMonth[stats[i].EventDate], stats[i])
+
+		if len(byMonth[stats[i].EventDate]) == 2 {
+			values := byMonth[stats[i].EventDate]
+			if err := CalculateCompensatedDebts(ctx, values[0], values[1]); err != nil {
+				logger.Errorf("compensated debt update failed: %s", err)
+				continue
+			}
+		}
+	}
 }

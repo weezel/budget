@@ -13,6 +13,7 @@ import (
 	"weezel/budget/confighandler"
 	"weezel/budget/db"
 	"weezel/budget/dbengine"
+	"weezel/budget/debtcontrol"
 	"weezel/budget/logger"
 	"weezel/budget/outputs"
 	"weezel/budget/shortlivedpage"
@@ -73,6 +74,7 @@ func generateStatsHTMLPage(
 	if err != nil {
 		return nil, err
 	}
+	debtcontrol.FillDebts(ctx, stats)
 
 	detailedExpenses, err := dbengine.GetExpensesByTimespan(ctx, startMonth, endMonth)
 	if err != nil {
