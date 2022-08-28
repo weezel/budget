@@ -1,0 +1,72 @@
+[
+	{
+		"username": "John",
+		"event_date": "2022-01-01T00:00:00Z",
+		"expenses_sum": 466.77,
+		"salary": 2368.91,
+		"owes": 165.50122542056215
+	},
+	{
+		"username": "John",
+		"event_date": "2022-02-01T00:00:00Z",
+		"expenses_sum": 696.1,
+		"salary": 2112.18,
+		"owes": 0
+	},
+	{
+		"username": "John",
+		"event_date": "2022-03-01T00:00:00Z",
+		"expenses_sum": 582.7299999999999,
+		"salary": 2161.13,
+		"owes": 63.34532106666592
+	},
+	{
+		"username": "John",
+		"event_date": "2022-04-01T00:00:00Z",
+		"expenses_sum": 812.65,
+		"salary": 2161.1,
+		"owes": 0
+	},
+	{
+		"username": "John",
+		"event_date": "2022-06-01T00:00:00Z",
+		"expenses_sum": 855.4299999999998,
+		"salary": 2161.13,
+		"owes": 484.13185862585016
+	},
+	{
+		"username": "Jorge",
+		"event_date": "2022-01-01T00:00:00Z",
+		"expenses_sum": 951.8,
+		"salary": 2946,
+		"owes": 0
+	},
+	{
+		"username": "Jorge",
+		"event_date": "2022-02-01T00:00:00Z",
+		"expenses_sum": 888,
+		"salary": 3541,
+		"owes": 104.23766092712418
+	},
+	{
+		"username": "Jorge",
+		"event_date": "2022-03-01T00:00:00Z",
+		"expenses_sum": 1275,
+		"salary": 4053,
+		"owes": 0
+	},
+	{
+		"username": "Jorge",
+		"event_date": "2022-04-01T00:00:00Z",
+		"expenses_sum": 703,
+		"salary": 3465,
+		"owes": 230.4578571301612
+	},
+	{
+		"username": "Jorge",
+		"event_date": "2022-06-01T00:00:00Z",
+		"expenses_sum": 2429.2000000000003,
+		"salary": 3138,
+		"owes": 0
+	}
+]

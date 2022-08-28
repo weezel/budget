@@ -2,9 +2,13 @@ package debtcontrol
 
 import (
 	"context"
+	"encoding/json"
 	"math"
+	"os"
 	"testing"
 	"weezel/budget/db"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 const (
@@ -139,5 +143,32 @@ func TestGetSalaryCompensatedDebts(t *testing.T) {
 					tt.args.user2.Owes)
 			}
 		})
+	}
+}
+
+func TestFillDebts(t *testing.T) {
+	// Stats data contains spending aggregations per month but no debts.
+	data, err := os.ReadFile("stats_data.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expectedData, err := os.ReadFile("stats_data_expected.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var expected []*db.StatisticsAggrByTimespanRow
+	if err = json.Unmarshal(expectedData, &expected); err != nil {
+		t.Fatal(err)
+	}
+
+	var exampleStats []*db.StatisticsAggrByTimespanRow
+	if err := json.Unmarshal(data, &exampleStats); err != nil {
+		t.Fatal(err)
+	}
+
+	FillDebts(context.Background(), exampleStats)
+	if diff := cmp.Diff(expected, exampleStats); diff != "" {
+		t.Errorf("%s: differs:\n%s\n", t.Name(), diff)
 	}
 }
