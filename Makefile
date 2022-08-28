@@ -27,7 +27,7 @@ build-bot:
 	cp -R sqlc/schemas/ cmd/telegrambot/
 	CGO_ENABLED=$(CGO_ENABLED) GOOS=linux GOARCH=$(GOARCH) \
 		$(GO) build $(LDFLAGS) \
-		-o build/$(BINARY)_linux_$(GOARCH) \
+		-o target/$(BINARY)_linux_$(GOARCH) \
 		cmd/telegrambot/main.go
 
 build-dbmigrate:
@@ -35,17 +35,17 @@ build-dbmigrate:
 	cp -R sqlc/schemas/ cmd/dbmigrate/
 	CGO_ENABLED=$(CGO_ENABLED) GOOS=linux GOARCH=$(GOARCH) \
 		$(GO) build $(LDFLAGS) \
-		-o build/dbmigrate_linux_$(GOARCH) \
+		-o target/dbmigrate_linux_$(GOARCH) \
 		cmd/dbmigrate/main.go
 
 build-sqlite2postgres:
 	CGO_ENABLED=1 GOOS=linux GOARCH=$(GOARCH) \
 		$(GO) build $(LDFLAGS) \
-		-o build/sqlite2postgres_linux_$(GOARCH) \
+		-o target/sqlite2postgres_linux_$(GOARCH) \
 		cmd/sqlite2postgres/main.go
 
 clean:
-	rm -rf budget build
+	rm -rf budget target
 
 lint:
 	golangci-lint run ./...
