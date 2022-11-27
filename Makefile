@@ -18,7 +18,7 @@ DB_PASSWORD	?= $(shell awk -F '=' '/^DB_PASSWORD/ { print $$NF }' .env)
 COMPOSE_FILE	?= docker-compose.yml
 
 
-.PHONY: all analysis obsd test
+.PHONY: all escape-analysis obsd test
 
 build: test lint build-dbmigrate build-bot
 
