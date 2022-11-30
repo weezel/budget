@@ -60,7 +60,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelID int64, hostname string) {
 				logger.Error(err)
 			}
 		case "tilastot":
-			if len(tokenized) < 3 {
+			if len(tokenized) != 3 {
 				displayHelp(username, channelID, bot)
 				continue
 			}
@@ -71,7 +71,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelID int64, hostname string) {
 				logger.Error(err)
 			}
 		case "palkka":
-			if len(tokenized) < 3 {
+			if len(tokenized) != 3 {
 				displayHelp(username, channelID, bot)
 				continue
 			}
@@ -82,7 +82,7 @@ func ConnectionHandler(bot *tgbotapi.BotAPI, channelID int64, hostname string) {
 				logger.Error(err)
 			}
 		case "poista":
-			if len(tokenized) < 4 {
+			if len(tokenized) != 3 {
 				displayHelp(username, channelID, bot)
 				continue
 			}
