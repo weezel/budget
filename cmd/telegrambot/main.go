@@ -120,7 +120,7 @@ func main() {
 		logger.Fatalf("Couldn't create a new bot: %s", err)
 	}
 	bot.Debug = false
-	logger.Infof("Using sername: %s", bot.Self.UserName)
+	logger.Infof("Using username: %s", bot.Self.UserName)
 	go telegramhandler.ConnectionHandler(
 		bot,
 		conf.Telegram.ChannelID,
