@@ -12,7 +12,7 @@ require (
 	github.com/pelletier/go-toml v1.9.4
 	github.com/prprprus/scheduler v0.5.0
 	github.com/sirupsen/logrus v1.8.1
-	golang.org/x/sys v0.1.0
+	golang.org/x/sys v0.15.0
 )
 
 require (
@@ -27,6 +27,6 @@ require (
 	github.com/jackc/pgproto3/v2 v2.3.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20200714003250-2b9c44734f2b // indirect
 	github.com/pressly/goose/v3 v3.6.1
-	golang.org/x/crypto v0.1.0 // indirect
-	golang.org/x/text v0.4.0 // indirect
+	golang.org/x/crypto v0.17.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 )
