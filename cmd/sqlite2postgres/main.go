@@ -82,7 +82,7 @@ func init() {
 	}
 }
 
-func initSQLiteConnection(ctx context.Context, dataSource string) (*sqlx.DB, error) {
+func initSQLiteConnection(dataSource string) (*sqlx.DB, error) {
 	dbFilePath, err := filepath.Abs(filepath.Clean(dataSource))
 	if err != nil {
 		return nil, err
@@ -123,7 +123,7 @@ func main() {
 	defer postgresDB.Close()
 	budgetDB := db.New(postgresDB)
 
-	sqliteDB, err := initSQLiteConnection(ctx, sqliteDBPath)
+	sqliteDB, err := initSQLiteConnection(sqliteDBPath)
 	if err != nil {
 		panic(err)
 	}

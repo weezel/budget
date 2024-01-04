@@ -44,7 +44,7 @@ func getStatsTimeSpan(ctx context.Context, hostname string, tokenized []string) 
 		logger.Error(err)
 		return "virhe, ei saatu tilastoja"
 	}
-	debtcontrol.FillDebts(ctx, stats)
+	debtcontrol.FillDebts(stats)
 
 	detailedExpenses, err := dbengine.GetExpensesByTimespan(ctx, startMonth, endMonth)
 	if err != nil {

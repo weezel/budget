@@ -1,7 +1,6 @@
 package debtcontrol
 
 import (
-	"context"
 	"fmt"
 	"math"
 	"sort"
@@ -11,7 +10,6 @@ import (
 )
 
 func CalculateCompensatedDebts(
-	ctx context.Context,
 	user1 *db.StatisticsAggrByTimespanRow,
 	user2 *db.StatisticsAggrByTimespanRow,
 ) error {
@@ -60,7 +58,7 @@ func CalculateCompensatedDebts(
 
 // FillDebts fills debt related data to stats parameter. Map is being used to combine different user's data together
 // and calculating compensated debts.
-func FillDebts(ctx context.Context, stats []*db.StatisticsAggrByTimespanRow) {
+func FillDebts(stats []*db.StatisticsAggrByTimespanRow) {
 	byMonth := map[time.Time][]*db.StatisticsAggrByTimespanRow{}
 	for i := range stats {
 		if _, ok := byMonth[stats[i].EventDate]; !ok {
@@ -70,7 +68,7 @@ func FillDebts(ctx context.Context, stats []*db.StatisticsAggrByTimespanRow) {
 
 		if len(byMonth[stats[i].EventDate]) == 2 {
 			values := byMonth[stats[i].EventDate]
-			if err := CalculateCompensatedDebts(ctx, values[0], values[1]); err != nil {
+			if err := CalculateCompensatedDebts(values[0], values[1]); err != nil {
 				logger.Errorf("compensated debt update failed: %s", err)
 				continue
 			}

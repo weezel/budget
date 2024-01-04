@@ -1,7 +1,6 @@
 package debtcontrol
 
 import (
-	"context"
 	"encoding/json"
 	"math"
 	"os"
@@ -16,9 +15,7 @@ const (
 )
 
 func TestCalculateCompensatedDebts(t *testing.T) {
-	ctxx := context.Background()
 	type args struct {
-		ctx   context.Context
 		user1 *db.StatisticsAggrByTimespanRow
 		user2 *db.StatisticsAggrByTimespanRow
 	}
@@ -31,7 +28,6 @@ func TestCalculateCompensatedDebts(t *testing.T) {
 		{
 			name: "Person with smaller salary has no purchases",
 			args: args{
-				ctx: ctxx,
 				user1: &db.StatisticsAggrByTimespanRow{
 					Username:    "alice",
 					ExpensesSum: 0,
@@ -54,7 +50,6 @@ func TestCalculateCompensatedDebts(t *testing.T) {
 		{
 			name: "Person with greater salary has no purchases",
 			args: args{
-				ctx: ctxx,
 				user1: &db.StatisticsAggrByTimespanRow{
 					Username:    "alice",
 					ExpensesSum: 80.0,
@@ -77,7 +72,6 @@ func TestCalculateCompensatedDebts(t *testing.T) {
 		{
 			name: "Person with smaller salary has more purchases",
 			args: args{
-				ctx: ctxx,
 				user1: &db.StatisticsAggrByTimespanRow{
 					Username:    "alice",
 					ExpensesSum: 40.0,
@@ -100,7 +94,6 @@ func TestCalculateCompensatedDebts(t *testing.T) {
 		{
 			name: "Person with greater salary has more purchases",
 			args: args{
-				ctx: ctxx,
 				user1: &db.StatisticsAggrByTimespanRow{
 					Username:    "alice",
 					ExpensesSum: 100.0,
@@ -123,7 +116,7 @@ func TestCalculateCompensatedDebts(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := CalculateCompensatedDebts(tt.args.ctx, tt.args.user1, tt.args.user2)
+			err := CalculateCompensatedDebts(tt.args.user1, tt.args.user2)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetSalaryCompensatedDebts() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -168,7 +161,7 @@ func TestFillDebts(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	FillDebts(context.Background(), exampleStats)
+	FillDebts(exampleStats)
 	if diff := cmp.Diff(expected, exampleStats); diff != "" {
 		t.Errorf("%s: differs:\n%s\n", t.Name(), diff)
 	}

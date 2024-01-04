@@ -74,7 +74,7 @@ func generateStatsHTMLPage(
 	if err != nil {
 		return nil, err
 	}
-	debtcontrol.FillDebts(ctx, stats)
+	debtcontrol.FillDebts(stats)
 
 	detailedExpenses, err := dbengine.GetExpensesByTimespan(ctx, startMonth, endMonth)
 	if err != nil {
