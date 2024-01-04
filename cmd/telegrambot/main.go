@@ -58,10 +58,10 @@ func dbMigrations(conf confighandler.TomlConfig) error {
 	// Do the DB Migrations
 	// goose.SetLogger(&logrus.Logger{}) // FIXME
 	if err := goose.Status(dbConn, schemasDir); err != nil {
-		return err
+		return fmt.Errorf("goose status: %w", err)
 	}
 	if err := goose.Up(dbConn, schemasDir); err != nil {
-		return err
+		return fmt.Errorf("goose up: %w", err)
 	}
 
 	return nil
